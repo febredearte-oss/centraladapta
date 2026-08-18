@@ -73,6 +73,26 @@ async function authenticate(request, env) {
   }
 }
 
+async function ensureSchema(env) {
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS app_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      revision INTEGER NOT NULL DEFAULT 0,
+      state_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      updated_by TEXT
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS state_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      revision INTEGER NOT NULL,
+      state_json TEXT NOT NULL,
+      changed_at TEXT NOT NULL,
+      changed_by TEXT
+    )`),
+    env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_state_history_revision ON state_history(revision DESC)`),
+  ]);
+}
+
 function corsJson(data, status = 200) {
   return json(data, status, {
     "access-control-allow-origin": "*",
@@ -82,6 +102,7 @@ function corsJson(data, status = 200) {
 }
 
 async function bootstrapState(request, env, actor) {
+  await ensureSchema(env);
   const existing = await env.DB.prepare(
     "SELECT revision FROM app_state WHERE id = 1"
   ).first();
@@ -113,6 +134,7 @@ async function bootstrapState(request, env, actor) {
 }
 
 async function getState(env) {
+  await ensureSchema(env);
   const row = await env.DB.prepare(
     "SELECT revision, state_json, updated_at, updated_by FROM app_state WHERE id = 1"
   ).first();
@@ -137,6 +159,7 @@ async function getState(env) {
 }
 
 async function putState(request, env, actor) {
+  await ensureSchema(env);
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || !body.state || typeof body.state !== "object") {
     return json({ error: "Estado inválido." }, 400);
