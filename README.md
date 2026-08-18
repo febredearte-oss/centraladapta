@@ -14,3 +14,5 @@ Os dados reais da Central **não são versionados neste repositório**. Seeds, e
 O `wrangler.jsonc` executa `node scripts/materialize-index.mjs` antes de cada deploy, então o HTML gerado não precisa ser versionado.
 
 > O nome `centraladapta` corresponde ao Worker que já estava conectado a este repositório no Cloudflare Builds.
+
+Pipeline de deploy automático validado em produção em 18/08/2026.
