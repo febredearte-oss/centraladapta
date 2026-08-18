@@ -1,9 +1,9 @@
 {
-  "commit": "57709db75c41548cc78b541ced1ab0173da27aea",
-  "run_id": "32112861163",
-  "outcome": "skipped",
+  "commit": "0782f7f87db971f07339b2ca4b69fb746b0067ef",
+  "run_id": "32112966531",
+  "outcome": "failure",
   "deployment_url": null,
-  "checked_at": "2026-08-18T07:44:32.072075+00:00",
+  "checked_at": "2026-08-18T07:45:57.075840+00:00",
   "target": "https://centraladapta.febredearte.workers.dev",
   "expected_v40_sha256": "070251d0b7db5177262f50ef7b8b023f5d912d450bf18f309daa29855e758c11"
 }
