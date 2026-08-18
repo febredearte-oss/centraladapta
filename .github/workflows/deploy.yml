@@ -1,0 +1,41 @@
+name: Deploy Central Adapta
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: centraladapta-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate exact uploaded v40
+        run: node scripts/materialize-index.mjs
+
+      - name: Deploy to Cloudflare Worker centraladapta
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: dca97af6a15592dde7c8119ef1f7ff94
+          wranglerVersion: "4.40.0"
+          command: deploy
