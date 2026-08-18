@@ -30,6 +30,21 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Repair v40 gzip chunk from exact stored prefix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          exact_prefix = Path("approved/v40exact.part01.b64").read_text(encoding="utf-8").strip()
+          original_chunk = Path("approved/v40.part01.b64").read_text(encoding="utf-8").strip()
+          if len(exact_prefix) != 9000:
+              raise SystemExit(f"prefixo exato inesperado: {len(exact_prefix)}")
+          if len(original_chunk) != 18000:
+              raise SystemExit(f"chunk base inesperado: {len(original_chunk)}")
+          repaired = exact_prefix + original_chunk[len(exact_prefix):]
+          Path("source/index.part01.b64").write_text(repaired, encoding="utf-8")
+          print(f"chunk 1 recomposto: {len(repaired)} caracteres")
+          PY
+
       - name: Validate exact uploaded v40
         run: node scripts/materialize-index.mjs
 
@@ -68,6 +83,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add deploy-status.json
+          if [ "${DEPLOY_OUTCOME}" = "success" ]; then
+            git add source/index.part01.b64
+          fi
           git commit -m "ci: record deploy ${DEPLOY_OUTCOME}" || true
           git push
 
