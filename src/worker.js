@@ -42,7 +42,13 @@ function unauthorizedResponse(isApi) {
 async function authenticate(request, env) {
   const teamDomain = normalizeTeamDomain(env.TEAM_DOMAIN);
   const audience = env.POLICY_AUD;
-  if (!teamDomain || !audience) return { setup: true };
+
+  // Desenvolvimento temporário: enquanto o Access ainda não foi configurado,
+  // o workers.dev permanece utilizável pela equipe. Ao definir TEAM_DOMAIN e
+  // POLICY_AUD, a autenticação passa automaticamente a exigir Cloudflare Access.
+  if (!teamDomain || !audience) {
+    return { ok: true, email: "desenvolvimento@central.local", development: true };
+  }
 
   const token = request.headers.get("cf-access-jwt-assertion");
   if (!token) return { ok: false };
