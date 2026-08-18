@@ -73,6 +73,45 @@ async function authenticate(request, env) {
   }
 }
 
+function corsJson(data, status = 200) {
+  return json(data, status, {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+  });
+}
+
+async function bootstrapState(request, env, actor) {
+  const existing = await env.DB.prepare(
+    "SELECT revision FROM app_state WHERE id = 1"
+  ).first();
+
+  if (existing) {
+    return corsJson({ error: "already_initialized", revision: Number(existing.revision || 0) }, 409);
+  }
+
+  const body = await request.json().catch(() => null);
+  const state = body && typeof body === "object" && body.state && typeof body.state === "object"
+    ? body.state
+    : body;
+
+  if (!state || typeof state !== "object" || Array.isArray(state)) {
+    return corsJson({ error: "Estado inválido." }, 400);
+  }
+
+  const serialized = JSON.stringify(state);
+  if (serialized.length > 1_500_000) {
+    return corsJson({ error: "O estado ultrapassou o limite de segurança de 1,5 MB." }, 413);
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    "INSERT INTO app_state (id, revision, state_json, updated_at, updated_by) VALUES (1, 1, ?, ?, ?)"
+  ).bind(serialized, now, actor || "bootstrap").run();
+
+  return corsJson({ ok: true, revision: 1, updatedAt: now });
+}
+
 async function getState(env) {
   const row = await env.DB.prepare(
     "SELECT revision, state_json, updated_at, updated_by FROM app_state WHERE id = 1"
@@ -171,6 +210,27 @@ export default {
     const auth = await authenticate(request, env);
     if (auth.setup) return setupResponse();
     if (!auth.ok) return unauthorizedResponse(isApi);
+
+    if (url.pathname === "/api/bootstrap" && request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "access-control-allow-origin": "*",
+          "access-control-allow-methods": "POST, OPTIONS",
+          "access-control-allow-headers": "content-type",
+          "cache-control": "no-store",
+        },
+      });
+    }
+
+    if (url.pathname === "/api/bootstrap" && request.method === "POST") {
+      try {
+        return await bootstrapState(request, env, auth.email);
+      } catch (error) {
+        console.error(error);
+        return corsJson({ error: "Falha ao inicializar a Central." }, 500);
+      }
+    }
 
     if (url.pathname === "/api/session" && request.method === "GET") {
       return json({ email: auth.email });
