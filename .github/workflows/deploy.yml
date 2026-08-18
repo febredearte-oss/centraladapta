@@ -48,6 +48,14 @@ jobs:
       - name: Validate exact uploaded v40
         run: node scripts/materialize-index.mjs
 
+      - name: Persist validated exact source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add source/index.part01.b64
+          git commit -m "fix: persist exact v40 chunk 1" || true
+          git push
+
       - name: Deploy to Cloudflare Worker centraladapta
         id: deploy
         continue-on-error: true
@@ -80,12 +88,7 @@ jobs:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.write("\n")
           PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add deploy-status.json
-          if [ "${DEPLOY_OUTCOME}" = "success" ]; then
-            git add source/index.part01.b64
-          fi
           git commit -m "ci: record deploy ${DEPLOY_OUTCOME}" || true
           git push
 
