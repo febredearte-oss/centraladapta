@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "centraladapta",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-08-14",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "observability": {
+    "enabled": true
+  },
+  "account_id": "dca97af6a15592dde7c8119ef1f7ff94",
+  "workers_dev": true,
+  "preview_urls": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "central-adapta-db",
+      "database_id": "da96a644-571b-418f-8e9d-15040bd04ffe"
+    }
+  ],
+  "build": {
+    "command": "node scripts/materialize-index.mjs"
+  }
+}

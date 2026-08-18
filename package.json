@@ -1,0 +1,16 @@
+{
+  "name": "centraladapta",
+  "private": true,
+  "version": "1.3.0",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "check": "node --check src/worker.js"
+  },
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}
