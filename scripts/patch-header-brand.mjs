@@ -17,11 +17,10 @@ const withClass = (name, className) => {
 let html = readFileSync(FILE, "utf8");
 
 const oldBrand = `<div class="brand"><div class="brand-mark">A</div><strong>Central Adapta</strong></div>`;
-const newBrand = `<div class="brand brand-official" aria-label="Central Adapta">
+const newBrand = `<div class="brand brand-official" aria-label="Adapta">
   ${withClass("horizontal-claro", "brand-logo-horizontal")}
   ${withClass("compacta-claro", "brand-logo-compacta")}
   ${withClass("ultracompacta-claro", "brand-logo-ultracompacta")}
-  <strong class="brand-context">Central</strong>
 </div>`;
 
 if (!html.includes(oldBrand)) {
@@ -30,11 +29,9 @@ if (!html.includes(oldBrand)) {
 html = html.replace(oldBrand, newBrand);
 
 const css = `<style id="adapta-responsive-header-brand">
-/* Cabeçalho da Central — assinaturas oficiais responsivas da Adapta. */
 .shell-header .brand-official{
   display:flex;
   align-items:center;
-  gap:9px;
   flex:none;
   min-width:0;
 }
@@ -51,15 +48,6 @@ const css = `<style id="adapta-responsive-header-brand">
   width:150px;
   max-height:38px;
 }
-.shell-header .brand-official .brand-context{
-  display:block;
-  font-family:"Montserrat",Arial,sans-serif;
-  font-size:11px;
-  line-height:1;
-  font-weight:700;
-  color:#0A3426;
-  white-space:nowrap;
-}
 @media(max-width:1180px){
   .shell-header .brand-official .brand-logo-horizontal{display:none}
   .shell-header .brand-official .brand-logo-compacta{
@@ -75,7 +63,6 @@ const css = `<style id="adapta-responsive-header-brand">
     width:36px;
     height:36px;
   }
-  .shell-header .brand-official .brand-context{display:none}
 }
 </style>`;
 
@@ -84,4 +71,4 @@ if (!html.includes('id="adapta-responsive-header-brand"')) {
 }
 
 writeFileSync(FILE, html, "utf8");
-console.log("Central Adapta: cabeçalho usando logotipos oficiais responsivos (horizontal → compacta → ultra compacta)." );
+console.log("Adapta: cabeçalho com marca oficial responsiva, sem rótulo adicional." );
