@@ -68,11 +68,23 @@ const visualCss = `
 #page-design .sv-swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px} #page-design .sv-swatch{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--sv-line);border-radius:14px;background:#fff} #page-design .sv-swatch i{display:block;width:52px;height:52px;border-radius:12px;flex:0 0 52px} #page-design .sv-swatch strong{display:block;font-size:13px;color:var(--sv-green);margin-bottom:3px} #page-design .sv-swatch code{font-family:"Montserrat",Arial,sans-serif;font-size:11px;color:#6C756F;background:none;padding:0}
 @media(max-width:980px){#page-design .sv-signature-row{grid-template-columns:1fr} #page-design .sv-swatches{grid-template-columns:1fr 1fr}} @media(max-width:720px){#page-design .sv-head h2{font-size:34px} #page-design .sv-rule{grid-template-columns:64px 1fr;padding:16px} #page-design .sv-rule .sv-inline-logo{width:56px;height:56px} #page-design .sv-variants,#page-design .sv-type-card{grid-template-columns:1fr} #page-design .sv-type-display{font-size:46px} #page-design .sv-swatches{grid-template-columns:1fr}}
 `;
-html = html.replace("</style>", `${visualCss}</style>`);
+
+const calendarCss = `
+/* Calendário — substituir azul padrão do FullCalendar pelo verde Adapta */
+#page-calendar .fc .fc-button-primary{background:#0A3426!important;border-color:#0A3426!important;color:#fff!important;box-shadow:none!important}
+#page-calendar .fc .fc-button-primary:hover{background:#123F31!important;border-color:#123F31!important}
+#page-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,#page-calendar .fc .fc-button-primary:not(:disabled):active{background:#07271D!important;border-color:#07271D!important}
+#page-calendar .fc .fc-button-primary:focus{box-shadow:0 0 0 3px rgba(10,52,38,.16)!important}
+#page-calendar .fc .fc-button-primary:disabled{background:#7C8380!important;border-color:#7C8380!important;opacity:.78!important}
+#page-calendar .fc .fc-event,#page-calendar .fc .fc-daygrid-event,#page-calendar .fc .fc-timegrid-event{background:#0A3426!important;border-color:#0A3426!important;color:#fff!important}
+#page-calendar .fc .fc-event:hover,#page-calendar .fc .fc-daygrid-event:hover{background:#123F31!important;border-color:#123F31!important}
+#page-calendar .fc .fc-event-main,#page-calendar .fc .fc-event-title,#page-calendar .fc .fc-event-time{color:#fff!important}
+`;
+html = html.replace("</style>", `${visualCss}${calendarCss}</style>`);
 
 const downloadJs = `<script>(function(){document.addEventListener('click',function(e){var b=e.target.closest('[data-logo-download]');if(!b)return;var card=b.closest('.sv-variant');var svg=card&&card.querySelector('svg');if(!svg)return;var xml='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(svg);var blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=b.getAttribute('data-logo-name')||'adapta-logo.svg';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);});})();</script>`;
 html = html.replace("</body>", `${downloadJs}</body>`);
 mkdirSync("public", { recursive:true });
 writeFileSync("public/index.html", html, "utf8");
 const outputSha256 = createHash("sha256").update(html).digest("hex");
-console.log(`Central Adapta: base v40 validada (${EXACT_V40_SIZE} bytes; SHA-256 ${actualSha256}) + Sistema Visual oficial aplicado (SHA-256 ${outputSha256}).`);
+console.log(`Central Adapta: base v40 validada (${EXACT_V40_SIZE} bytes; SHA-256 ${actualSha256}) + Sistema Visual oficial aplicado + calendário verde (SHA-256 ${outputSha256}).`);
