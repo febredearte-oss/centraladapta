@@ -56,7 +56,7 @@ body.sidebar-closed .app-sidebar{transform:translateX(-100%)}
 .app-sidebar .sidebar-nav-icon{width:18px;height:18px;display:grid;place-items:center;flex:0 0 18px;color:currentColor}
 .app-sidebar .sidebar-nav-icon svg{width:17px;height:17px;stroke-width:1.8}
 
-/* Calendário vira módulo-mãe; conteúdos/avisos e feriados ficam subordinados. */
+/* Calendário vira módulo-mãe; conteúdos/avisos, linhas editoriais e feriados ficam subordinados. */
 .app-sidebar .sidebar-nav-group{display:flex;flex-direction:column;gap:2px;margin:1px 0}
 .app-sidebar .sidebar-nav-group>.sidebar-calendar-main{font-weight:700}
 .app-sidebar .sidebar-subnav{display:flex;flex-direction:column;gap:1px;margin:0 0 3px 29px;padding:2px 0 3px 10px;border-left:1px solid #d8e0da}
@@ -116,9 +116,10 @@ const js = `<script id="adapta-sidebar-runtime">
   if(nav){
     var calendarBtn=nav.querySelector('button[data-page="calendar"]');
     var contentsBtn=nav.querySelector('button[data-page="contents"]');
+    var linesBtn=nav.querySelector('button[data-page="lines"]');
     var holidaysBtn=nav.querySelector('button[data-page="holidays"]');
-    if(calendarBtn&&(contentsBtn||holidaysBtn)&&!nav.querySelector('.sidebar-nav-group')){
-      var first=[calendarBtn,contentsBtn,holidaysBtn].filter(Boolean).sort(function(a,b){return Array.prototype.indexOf.call(nav.children,a)-Array.prototype.indexOf.call(nav.children,b);})[0];
+    if(calendarBtn&&(contentsBtn||linesBtn||holidaysBtn)&&!nav.querySelector('.sidebar-nav-group')){
+      var first=[calendarBtn,contentsBtn,linesBtn,holidaysBtn].filter(Boolean).sort(function(a,b){return Array.prototype.indexOf.call(nav.children,a)-Array.prototype.indexOf.call(nav.children,b);})[0];
       var group=document.createElement('div');
       group.className='sidebar-nav-group';
       first.parentNode.insertBefore(group,first);
@@ -131,6 +132,7 @@ const js = `<script id="adapta-sidebar-runtime">
         contentsBtn.dataset.sidebarLabel='Conteúdos e avisos';
         sub.appendChild(contentsBtn);
       }
+      if(linesBtn)sub.appendChild(linesBtn);
       if(holidaysBtn)sub.appendChild(holidaysBtn);
       group.appendChild(sub);
     }
@@ -179,4 +181,4 @@ const js = `<script id="adapta-sidebar-runtime">
 html = html.replace("</body>", `${js}</body>`);
 
 writeFileSync(FILE, html, "utf8");
-console.log("Adapta: menu lateral ocultável com Conteúdos e avisos + Feriados agrupados dentro de Calendário.");
+console.log("Adapta: menu lateral ocultável com Conteúdos e avisos + Linhas editoriais + Feriados dentro de Calendário.");
