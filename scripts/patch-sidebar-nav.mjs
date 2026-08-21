@@ -55,6 +55,18 @@ body.sidebar-closed .app-sidebar{transform:translateX(-100%)}
 .app-sidebar .main-nav button.active{background:#e8efea;color:#0A3426;font-weight:750}
 .app-sidebar .sidebar-nav-icon{width:18px;height:18px;display:grid;place-items:center;flex:0 0 18px;color:currentColor}
 .app-sidebar .sidebar-nav-icon svg{width:17px;height:17px;stroke-width:1.8}
+
+/* Calendário vira módulo-mãe; conteúdos/avisos e feriados ficam subordinados. */
+.app-sidebar .sidebar-nav-group{display:flex;flex-direction:column;gap:2px;margin:1px 0}
+.app-sidebar .sidebar-nav-group>.sidebar-calendar-main{font-weight:700}
+.app-sidebar .sidebar-subnav{display:flex;flex-direction:column;gap:1px;margin:0 0 3px 29px;padding:2px 0 3px 10px;border-left:1px solid #d8e0da}
+.app-sidebar .sidebar-subnav button{min-height:34px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:600;color:#737d77}
+.app-sidebar .sidebar-subnav button .sidebar-nav-icon{width:14px;height:14px;flex-basis:14px}
+.app-sidebar .sidebar-subnav button .sidebar-nav-icon svg{width:13px;height:13px;stroke-width:1.8}
+.app-sidebar .sidebar-subnav button:hover{background:#f1f4f1;color:#0A3426}
+.app-sidebar .sidebar-subnav button.active{background:#edf2ee;color:#0A3426;font-weight:700}
+.app-sidebar .sidebar-nav-group:has(.sidebar-subnav button.active)>.sidebar-calendar-main{color:#0A3426;background:#f3f6f3}
+
 .app-sidebar .header-spacer{display:none}
 .app-sidebar .user-select{
   width:100%;min-height:40px;flex:none;margin-top:auto;
@@ -98,8 +110,37 @@ const js = `<script id="adapta-sidebar-runtime">
   var backdrop=document.getElementById('sidebarBackdrop');
   if(!sidebar||!toggle)return;
   var mobile=window.matchMedia('(max-width:840px)');
-  var icons={overview:'layout-dashboard',contents:'files',calendar:'calendar-days',lines:'rows-3',holidays:'bell',design:'palette'};
+  var nav=sidebar.querySelector('.main-nav');
+
+  // Reorganiza a arquitetura: Calendário é o módulo-mãe.
+  if(nav){
+    var calendarBtn=nav.querySelector('button[data-page="calendar"]');
+    var contentsBtn=nav.querySelector('button[data-page="contents"]');
+    var holidaysBtn=nav.querySelector('button[data-page="holidays"]');
+    if(calendarBtn&&(contentsBtn||holidaysBtn)&&!nav.querySelector('.sidebar-nav-group')){
+      var first=[calendarBtn,contentsBtn,holidaysBtn].filter(Boolean).sort(function(a,b){return Array.prototype.indexOf.call(nav.children,a)-Array.prototype.indexOf.call(nav.children,b);})[0];
+      var group=document.createElement('div');
+      group.className='sidebar-nav-group';
+      first.parentNode.insertBefore(group,first);
+      calendarBtn.classList.add('sidebar-calendar-main');
+      group.appendChild(calendarBtn);
+      var sub=document.createElement('div');
+      sub.className='sidebar-subnav';
+      if(contentsBtn){
+        // preserva data-page e comportamento; altera apenas o rótulo visual.
+        contentsBtn.dataset.sidebarLabel='Conteúdos e avisos';
+        sub.appendChild(contentsBtn);
+      }
+      if(holidaysBtn)sub.appendChild(holidaysBtn);
+      group.appendChild(sub);
+    }
+  }
+
+  var icons={overview:'layout-dashboard',contents:'files',calendar:'calendar-days',lines:'rows-3',holidays:'calendar-heart',design:'palette'};
   sidebar.querySelectorAll('.main-nav button[data-page]').forEach(function(btn){
+    if(btn.dataset.sidebarLabel){
+      Array.from(btn.childNodes).forEach(function(node){if(node.nodeType===3&&node.textContent.trim())node.textContent=' '+btn.dataset.sidebarLabel;});
+    }
     if(btn.querySelector('.sidebar-nav-icon'))return;
     var icon=document.createElement('span');
     icon.className='sidebar-nav-icon';
@@ -138,4 +179,4 @@ const js = `<script id="adapta-sidebar-runtime">
 html = html.replace("</body>", `${js}</body>`);
 
 writeFileSync(FILE, html, "utf8");
-console.log("Adapta: navegação convertida em menu lateral ocultável e responsivo.");
+console.log("Adapta: menu lateral ocultável com Conteúdos e avisos + Feriados agrupados dentro de Calendário.");
