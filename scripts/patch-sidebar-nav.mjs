@@ -56,16 +56,23 @@ body.sidebar-closed .app-sidebar{transform:translateX(-100%)}
 .app-sidebar .sidebar-nav-icon{width:18px;height:18px;display:grid;place-items:center;flex:0 0 18px;color:currentColor}
 .app-sidebar .sidebar-nav-icon svg{width:17px;height:17px;stroke-width:1.8}
 
-/* Calendário vira módulo-mãe; conteúdos/avisos, linhas editoriais e feriados ficam subordinados. */
+/* Hierarquia: Calendário > Conteúdos > Linhas editoriais; Calendário > Feriados e avisos. */
 .app-sidebar .sidebar-nav-group{display:flex;flex-direction:column;gap:2px;margin:1px 0}
 .app-sidebar .sidebar-nav-group>.sidebar-calendar-main{font-weight:700}
-.app-sidebar .sidebar-subnav{display:flex;flex-direction:column;gap:1px;margin:0 0 3px 29px;padding:2px 0 3px 10px;border-left:1px solid #d8e0da}
-.app-sidebar .sidebar-subnav button{min-height:34px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:600;color:#737d77}
-.app-sidebar .sidebar-subnav button .sidebar-nav-icon{width:14px;height:14px;flex-basis:14px}
-.app-sidebar .sidebar-subnav button .sidebar-nav-icon svg{width:13px;height:13px;stroke-width:1.8}
-.app-sidebar .sidebar-subnav button:hover{background:#f1f4f1;color:#0A3426}
-.app-sidebar .sidebar-subnav button.active{background:#edf2ee;color:#0A3426;font-weight:700}
-.app-sidebar .sidebar-nav-group:has(.sidebar-subnav button.active)>.sidebar-calendar-main{color:#0A3426;background:#f3f6f3}
+.app-sidebar .sidebar-subnav-level1{display:flex;flex-direction:column;gap:1px;margin:0 0 3px 29px;padding:2px 0 3px 10px;border-left:1px solid #d8e0da}
+.app-sidebar .sidebar-subnav-level1>button,
+.app-sidebar .sidebar-content-group>button{min-height:34px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:600;color:#737d77}
+.app-sidebar .sidebar-subnav-level1 button .sidebar-nav-icon{width:14px;height:14px;flex-basis:14px}
+.app-sidebar .sidebar-subnav-level1 button .sidebar-nav-icon svg{width:13px;height:13px;stroke-width:1.8}
+.app-sidebar .sidebar-subnav-level1 button:hover{background:#f1f4f1;color:#0A3426}
+.app-sidebar .sidebar-subnav-level1 button.active{background:#edf2ee;color:#0A3426;font-weight:700}
+.app-sidebar .sidebar-content-group{display:flex;flex-direction:column;gap:1px}
+.app-sidebar .sidebar-subnav-level2{display:flex;flex-direction:column;margin:0 0 2px 20px;padding-left:9px;border-left:1px solid #e3e8e4}
+.app-sidebar .sidebar-subnav-level2 button{min-height:31px;padding:0 8px;border-radius:7px;font-size:11px;font-weight:600;color:#7f8883}
+.app-sidebar .sidebar-subnav-level2 button .sidebar-nav-icon{width:12px;height:12px;flex-basis:12px}
+.app-sidebar .sidebar-subnav-level2 button .sidebar-nav-icon svg{width:11px;height:11px}
+.app-sidebar .sidebar-content-group:has(.sidebar-subnav-level2 button.active)>button{color:#0A3426;background:#f3f6f3}
+.app-sidebar .sidebar-nav-group:has(.sidebar-subnav-level1 button.active)>.sidebar-calendar-main{color:#0A3426;background:#f3f6f3}
 
 .app-sidebar .header-spacer{display:none}
 .app-sidebar .user-select{
@@ -112,7 +119,7 @@ const js = `<script id="adapta-sidebar-runtime">
   var mobile=window.matchMedia('(max-width:840px)');
   var nav=sidebar.querySelector('.main-nav');
 
-  // Reorganiza a arquitetura: Calendário é o módulo-mãe.
+  // Arquitetura solicitada: Calendário > Conteúdos > Linhas editoriais; Calendário > Feriados e avisos.
   if(nav){
     var calendarBtn=nav.querySelector('button[data-page="calendar"]');
     var contentsBtn=nav.querySelector('button[data-page="contents"]');
@@ -125,16 +132,33 @@ const js = `<script id="adapta-sidebar-runtime">
       first.parentNode.insertBefore(group,first);
       calendarBtn.classList.add('sidebar-calendar-main');
       group.appendChild(calendarBtn);
-      var sub=document.createElement('div');
-      sub.className='sidebar-subnav';
+
+      var level1=document.createElement('div');
+      level1.className='sidebar-subnav-level1';
+
       if(contentsBtn){
-        // preserva data-page e comportamento; altera apenas o rótulo visual.
-        contentsBtn.dataset.sidebarLabel='Conteúdos e avisos';
-        sub.appendChild(contentsBtn);
+        contentsBtn.dataset.sidebarLabel='Conteúdos';
+        var contentGroup=document.createElement('div');
+        contentGroup.className='sidebar-content-group';
+        contentGroup.appendChild(contentsBtn);
+        if(linesBtn){
+          linesBtn.dataset.sidebarLabel='Linhas editoriais';
+          var level2=document.createElement('div');
+          level2.className='sidebar-subnav-level2';
+          level2.appendChild(linesBtn);
+          contentGroup.appendChild(level2);
+        }
+        level1.appendChild(contentGroup);
+      }else if(linesBtn){
+        linesBtn.dataset.sidebarLabel='Linhas editoriais';
+        level1.appendChild(linesBtn);
       }
-      if(linesBtn)sub.appendChild(linesBtn);
-      if(holidaysBtn)sub.appendChild(holidaysBtn);
-      group.appendChild(sub);
+
+      if(holidaysBtn){
+        holidaysBtn.dataset.sidebarLabel='Feriados e avisos';
+        level1.appendChild(holidaysBtn);
+      }
+      group.appendChild(level1);
     }
   }
 
@@ -181,4 +205,4 @@ const js = `<script id="adapta-sidebar-runtime">
 html = html.replace("</body>", `${js}</body>`);
 
 writeFileSync(FILE, html, "utf8");
-console.log("Adapta: menu lateral ocultável com Conteúdos e avisos + Linhas editoriais + Feriados dentro de Calendário.");
+console.log("Adapta: menu lateral em Calendário > Conteúdos > Linhas editoriais e Calendário > Feriados e avisos.");
