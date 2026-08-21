@@ -1,0 +1,102 @@
+{
+  "source": "Canva design DAHSSVFXI6w / Brand Kit ADAPTA-CANN",
+  "board_size": [
+    668,
+    376
+  ],
+  "board_trim_box": [
+    24,
+    17,
+    643,
+    368
+  ],
+  "icon_size": [
+    200,
+    200
+  ],
+  "icon_trim_box": [
+    0,
+    0,
+    200,
+    200
+  ],
+  "dominant_non_neutral_colors": [
+    {
+      "hex": "#252225",
+      "rgb": [
+        37,
+        34,
+        37
+      ],
+      "pixels": 2759,
+      "saturation": 0.081,
+      "value": 0.145
+    },
+    {
+      "hex": "#0C3527",
+      "rgb": [
+        12,
+        53,
+        39
+      ],
+      "pixels": 1862,
+      "saturation": 0.774,
+      "value": 0.208
+    },
+    {
+      "hex": "#6D8B7C",
+      "rgb": [
+        109,
+        139,
+        124
+      ],
+      "pixels": 1734,
+      "saturation": 0.216,
+      "value": 0.545
+    },
+    {
+      "hex": "#495D54",
+      "rgb": [
+        73,
+        93,
+        84
+      ],
+      "pixels": 1714,
+      "saturation": 0.215,
+      "value": 0.365
+    },
+    {
+      "hex": "#8FA89C",
+      "rgb": [
+        143,
+        168,
+        156
+      ],
+      "pixels": 1653,
+      "saturation": 0.149,
+      "value": 0.659
+    },
+    {
+      "hex": "#0B0E0B",
+      "rgb": [
+        11,
+        14,
+        11
+      ],
+      "pixels": 1356,
+      "saturation": 0.214,
+      "value": 0.055
+    },
+    {
+      "hex": "#2F4238",
+      "rgb": [
+        47,
+        66,
+        56
+      ],
+      "pixels": 583,
+      "saturation": 0.288,
+      "value": 0.259
+    }
+  ]
+}
