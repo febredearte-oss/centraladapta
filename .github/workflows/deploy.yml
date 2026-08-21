@@ -28,5 +28,5 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Validate exact uploaded v40
-        run: node scripts/materialize-index.mjs
+      - name: Build and validate Central Adapta
+        run: node scripts/materialize-index.mjs && node scripts/patch-calendar-theme.mjs
