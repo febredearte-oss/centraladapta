@@ -22,6 +22,6 @@
     }
   ],
   "build": {
-    "command": "node scripts/materialize-index.mjs"
+    "command": "node scripts/materialize-index.mjs && node scripts/patch-calendar-theme.mjs"
   }
 }
