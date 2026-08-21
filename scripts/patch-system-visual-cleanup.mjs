@@ -13,6 +13,10 @@ html = html.replace(
   "Montserrat é a tipografia principal da Adapta."
 );
 
+/* Remove somente os dois trechos marcados na revisão visual. */
+html = html.replace('<h2>Sistema Visual</h2>', '');
+html = html.replace('<strong>+AD e o escudo formam uma única marca.</strong>', '');
+
 const weightsBlock = `<div class="sv-type-weights"><div><strong class="w800">ExtraBold 800</strong><small>Títulos e chamadas</small></div><div><strong class="w700">Bold 700</strong><small>Subtítulos e ênfase</small></div><div><strong class="w600">SemiBold 600</strong><small>Navegação e informação</small></div><div><strong class="w500">Medium 500</strong><small>Corpo de texto e apoio</small></div></div>`;
 const typeMeta = `<div class="sv-type-meta"><strong>Montserrat</strong><span>Tipografia principal</span></div>`;
 if (html.includes(weightsBlock)) html = html.replace(weightsBlock, typeMeta);
