@@ -1,4 +1,4 @@
-name: Capture Adapta Canva assets
+name: Analyze Adapta Canva assets
 
 on:
   push:
@@ -11,31 +11,79 @@ permissions:
   contents: write
 
 jobs:
-  capture:
+  analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
-      - name: Capture official Canva references
+      - name: Install image tools
+        run: python -m pip install --quiet pillow
+
+      - name: Extract board palette and trim references
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p public/brand
-          curl --fail --location --retry 3 \
-            'https://media.canva.com/v2/document-image/hash:2015615283/height:376/id:DAHSSVFXI6w/type:B/width:668?brand=BADBwUSDO3A&csig=AAAAAAAAAAAAAAAAAAAAACgY3KLBJmQsv6xgrXFpNrCnpbo4XH2SUHeBLK2L0qwo&disableexport=T&exp=1787346436&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FFXI6w%2FDAHSSVFXI6w%2F11%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260821%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260821T163509Z%26X-Amz-Expires%3D16327%26X-Amz-Signature%3De776fface09641b96d82d7a6bcb5ce2bfe48a93e9de4bcb75f2dcd8f22097444%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DFri%252C%252021%2520Aug%25202026%252021%253A07%253A16%2520GMT&fallbackstale=T&osig=AAAAAAAAAAAAAAAAAAAAAPUDpBHWsnBAKV7HWHXwAmkC1JBuQilpfDCPG4k7s5xK&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cfallbackstale%2Cpage%2Cversion&signer=document-rpc&version=12' \
-            -o public/brand/adapta-logo-board.png
-          curl --fail --location --retry 3 \
-            'https://media.canva.com/v2/image-resize/format:PNG/height:200/quality:100/uri:ifs%3A%2F%2FM%2F4101896b-d488-449f-bf77-1f481f3f456c/watermark:F/width:200?csig=AAAAAAAAAAAAAAAAAAAAAI45h-Z9pqDMTSdwvSWR_RV5TrBD0N5z7vRF_-9qm8V1&exp=1787360640&osig=AAAAAAAAAAAAAAAAAAAAACx6L07TRISR3ay6Cpc2nZfmXSHHicIwZwnDyFCJXR-5&signer=media-rpc&x-canva-quality=thumbnail' \
-            -o public/brand/adapta-brand-icon.png
-          file public/brand/*.png
+          python - <<'PY'
+          from PIL import Image, ImageChops
+          from collections import Counter
+          import json, colorsys
+          from pathlib import Path
 
-      - name: Commit captured assets
+          root = Path('public/brand')
+          board = Image.open(root/'adapta-logo-board.png').convert('RGBA')
+          icon = Image.open(root/'adapta-brand-icon.png').convert('RGBA')
+
+          def trim_white(im, out):
+              rgb = im.convert('RGB')
+              bg = Image.new('RGB', rgb.size, (255,255,255))
+              diff = ImageChops.difference(rgb, bg).convert('L')
+              diff = diff.point(lambda p: 255 if p > 12 else 0)
+              box = diff.getbbox()
+              cropped = im.crop(box) if box else im
+              cropped.save(out)
+              return box
+
+          board_box = trim_white(board, root/'adapta-logo-board-trim.png')
+          icon_box = trim_white(icon, root/'adapta-brand-icon-trim.png')
+
+          sample = board.convert('RGB')
+          sample.thumbnail((420,420))
+          quant = sample.quantize(colors=32, method=Image.Quantize.MEDIANCUT).convert('RGB')
+          counts = Counter(quant.getdata())
+
+          colors=[]
+          for (r,g,b), n in counts.most_common():
+              mx, mn = max(r,g,b), min(r,g,b)
+              # remove white/off-white backgrounds and nearly neutral greys
+              if r>238 and g>238 and b>238: continue
+              h,s,v = colorsys.rgb_to_hsv(r/255,g/255,b/255)
+              if s < .10 and v > .55: continue
+              hexc=f'#{r:02X}{g:02X}{b:02X}'
+              # keep visually distinct entries
+              if any(sum((a-c)**2 for a,c in zip((r,g,b), x['rgb'])) < 28**2 for x in colors):
+                  continue
+              colors.append({'hex':hexc,'rgb':[r,g,b],'pixels':n,'saturation':round(s,3),'value':round(v,3)})
+              if len(colors)>=10: break
+
+          data={
+              'source':'Canva design DAHSSVFXI6w / Brand Kit ADAPTA-CANN',
+              'board_size':list(board.size),
+              'board_trim_box':board_box,
+              'icon_size':list(icon.size),
+              'icon_trim_box':icon_box,
+              'dominant_non_neutral_colors':colors,
+          }
+          (root/'adapta-brand-data.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(data,ensure_ascii=False,indent=2))
+          PY
+
+      - name: Commit analysis
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/brand/adapta-logo-board.png public/brand/adapta-brand-icon.png
-          git commit -m 'assets: add official Adapta Canva references' || exit 0
+          git add public/brand/adapta-brand-data.json public/brand/adapta-logo-board-trim.png public/brand/adapta-brand-icon-trim.png
+          git commit -m 'assets: analyze official Adapta Canva palette' || exit 0
           git push
