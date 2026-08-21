@@ -22,6 +22,6 @@
     }
   ],
   "build": {
-    "command": "node scripts/materialize-index.mjs && node scripts/patch-calendar-theme.mjs && node scripts/patch-header-brand.mjs && node scripts/patch-ui-polish.mjs && node scripts/patch-system-visual-cleanup.mjs && node scripts/patch-sidebar-nav.mjs"
+    "command": "node scripts/materialize-index.mjs && node scripts/patch-calendar-theme.mjs && node scripts/patch-header-brand.mjs && node scripts/patch-ui-polish.mjs && node scripts/patch-system-visual-cleanup.mjs && node scripts/patch-sidebar-nav.mjs && node scripts/patch-overview-workdesk.mjs"
   }
 }
