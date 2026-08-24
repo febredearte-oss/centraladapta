@@ -1,27 +1,37 @@
 {
   "ok": true,
-  "runId": "32744602943",
-  "checkedAt": "2026-08-24T15:25:59.480Z",
+  "runId": "32745001778",
+  "checkedAt": "2026-08-24T15:28:40.653Z",
   "pageErrors": [
-    "SyntaxError: Invalid or unexpected token",
-    "TypeError: fullCalendarInstance.updateSize is not a function\n    at syncFullCalendar (https://centraladapta.febredearte.workers.dev/:5124:24)\n    at renderCalendar (https://centraladapta.febredearte.workers.dev/:5271:3)\n    at openPage (https://centraladapta.febredearte.workers.dev/:5624:5)\n    at HTMLButtonElement.<anonymous> (https://centraladapta.febredearte.workers.dev/:5651:94)"
+    {
+      "name": "SyntaxError",
+      "message": "Invalid or unexpected token",
+      "stack": ""
+    },
+    {
+      "name": "TypeError",
+      "message": "fullCalendarInstance.updateSize is not a function",
+      "stack": "TypeError: fullCalendarInstance.updateSize is not a function\n    at syncFullCalendar (https://centraladapta.febredearte.workers.dev/:5124:24)\n    at renderCalendar (https://centraladapta.febredearte.workers.dev/:5271:3)\n    at openPage (https://centraladapta.febredearte.workers.dev/:5624:5)\n    at HTMLButtonElement.<anonymous> (https://centraladapta.febredearte.workers.dev/:5651:94)"
+    }
   ],
-  "browserNow": "Mon Aug 24 2026 15:25:59 GMT+0000 (Coordinated Universal Time)",
+  "consoleErrors": [],
+  "browserNow": "Mon Aug 24 2026 15:28:40 GMT+0000 (Coordinated Universal Time)",
   "todayKey": "2026-08-24",
-  "title": "Central de Comunicação — Adapta",
-  "href": "https://centraladapta.febredearte.workers.dev/",
-  "pageCalendarActive": true,
-  "todayFound": false,
-  "todayCellMatchesDate": false,
-  "currentCellFound": true,
-  "todayNumber": null,
-  "todayLabel": null,
-  "todayBackground": null,
-  "todayBoxShadow": null,
-  "otherMonthFound": false,
-  "otherMonthOpacity": null,
-  "todayButtonFound": true,
-  "todayButtonDisabled": true,
   "patchStylePresent": true,
-  "patchRuntimePresent": true
+  "patchRuntimePresent": true,
+  "runtimeParseError": null,
+  "runtimeText": "\n(function(){\n  const root=document.getElementById(\"fullCalendar\");\n  if(!root)return;\n\n  function todayKey(){\n    const now=new Date();\n    const y=now.getFullYear();\n    const m=String(now.getMonth()+1).padStart(2,\"0\");\n    const d=String(now.getDate()).padStart(2,\"0\");\n    return `${y}-${m}-${d}`;\n  }\n\n  function visibleMonthKey(){\n    const counts=new Map();\n    root.querySelectorAll('[role=\"gridcell\"][data-date]').forEach(cell=>{\n      const key=(cell.getAttribute(\"data-date\")||\"\").slice(0,7);\n      if(!key)return;\n      counts.set(key,(counts.get(key)||0)+1);\n    });\n    let best=\"\";\n    let bestCount=-1;\n    counts.forEach((count,key)=>{\n      if(count>bestCount){best=key;bestCount=count;}\n    });\n    return best;\n  }\n\n  function markOtherMonths(){\n    const current=visibleMonthKey();\n    root.querySelectorAll('[role=\"gridcell\"][data-date]').forEach(cell=>{\n      const date=cell.getAttribute(\"data-date\")||\"\";\n      cell.classList.toggle(\"adapta-other-month\",!!current&&!date.startsWith(current));\n    });\n  }\n\n  function markActualToday(){\n    root.querySelectorAll(\".adapta-actual-today\").forEach(cell=>cell.classList.remove(\"adapta-actual-today\"));\n    root.querySelectorAll(\".adapta-today-label\").forEach(label=>label.remove());\n    const cell=root.querySelector('[role=\"gridcell\"][aria-current=\"date\"]') || root.querySelector(`[role=\"gridcell\"][data-date=\"${todayKey()}\"]`);\n    if(!cell)return null;\n    cell.classList.add(\"adapta-actual-today\");\n    const top=cell.firstElementChild;\n    if(top){\n      const label=document.createElement(\"span\");\n      label.className=\"adapta-today-label\";\n      label.textContent=\"HOJE\";\n      top.prepend(label);\n    }\n    return cell;\n  }\n\n  function todayButton(){\n    return [...root.querySelectorAll(\"button\")].find(button=>button.textContent.trim().toLowerCase()===\"hoje\")||null;\n  }\n\n  function enableTodayButton(){\n    const button=todayButton();\n    if(!button)return;\n    button.disabled=false;\n    button.removeAttribute(\"disabled\");\n    button.setAttribute(\"aria-disabled\",\"false\");\n    button.style.opacity=\"1\";\n    button.style.cursor=\"pointer\";\n  }\n\n  function refresh(){\n    markOtherMonths();\n    markActualToday();\n    enableTodayButton();\n  }\n\n  function scrollCurrentDay(){\n    const todayCell=markActualToday();\n    if(!todayCell)return;\n    const headerHeight=document.querySelector(\".shell-header\")?.getBoundingClientRect().height||0;\n    const targetY=todayCell.getBoundingClientRect().top+window.scrollY-headerHeight-190;\n    window.scrollTo({top:Math.max(0,targetY),behavior:\"smooth\"});\n  }\n\n  requestAnimationFrame(()=>requestAnimationFrame(refresh));\n  root.addEventListener(\"click\",()=>{\n    requestAnimationFrame(()=>requestAnimationFrame(refresh));\n  },true);\n  document.addEventListener(\"click\",event=>{\n    const button=todayButton();\n    if(!button||!button.contains(event.target))return;\n    requestAnimationFrame(()=>requestAnimationFrame(()=>{\n      refresh();\n      scrollCurrentDay();\n    }));\n  });\n})();\n",
+  "scriptParseErrors": [
+    {
+      "index": 6,
+      "id": null,
+      "error": "SyntaxError: Invalid or unexpected token\n    at new Function (<anonymous>)\n    at eval (eval at evaluate (:291:30), <anonymous>:7:12)\n    at Array.forEach (<anonymous>)\n    at eval (eval at evaluate (:291:30), <anonymous>:5:27)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "sample": "(function(){document.addEventListener('click',function(e){var b=e.target.closest('[data-logo-download]');if(!b)return;var card=b.closest('.sv-variant');var svg=card&&card.querySelector('svg');if(!svg)return;var xml='<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n'+new XMLSerializer().serializeToString(svg);var blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=b.getAttribute('data-logo-name')||'adapta-logo.svg';document"
+    }
+  ],
+  "currentCellFound": true,
+  "currentCellOuter": "<div role=\"gridcell\" aria-label=\"24 de agosto de 2026\" aria-current=\"date\" data-date=\"2026-08-24\" class=\"fc-classic-wsy fc-classic-C1x fc-classic-hbn fc-QX fc-J6 fc-Xt fc-5M fc-Kk\"><div class=\"fc-xp fc-classic-84e fc-classic-dl1 fc-classic-1sP fc-classic-LMv\"><div role=\"link\" aria-label=\"Ir para 24 de agosto de 2026\" tabindex=\"0\" class=\"fc-classic-rVY fc-classic-TZ4 fc-classic-V9v fc-classic-9yp fc-classic-Eu0 fc-classic-uqo fc-classic-fFh fc-classic-zIi fc-hH fc-Z9\">24</div></div><div class=\"fc-Xt fc-J6\"><div style=\"min-height: 21px;\"><div class=\"fc-So\" style=\"inset-inline: 0% 85.7143%; z-index: 0; top: 28px;\"><div role=\"button\" tabindex=\"0\" class=\"fc-classic-uqo fc-classic-zIi fc-classic-XpK fc-classic-Ika fc-classic-7A6 fc-classic-Fvv fc-classic-cKZ fc-classic-4yP fc-classic-tCP fc-classic-8gz fc-ei fc-hH fc-vB fc-Be\" style=\"--fc-event-color: #0A3426; --fc-event-contrast-color: var(--fc-classic-event-contrast);\"><div class=\"fc-classic-lNM fc-classic-AAA fc-classic-Mjo fc-classic-rVY fc-y0\"></div><div class=\"fc-classic-GAX fc-classic-dl1 fc-classic-1sP fc-classic-XpK fc-classic-z5u fc-classic-aTF fc-classic-a3B fc-J6 fc-6d\"><div class=\"fc-classic-F1o fc-classic-TZ4 fc-classic-pKG fc-classic-1Zl\">16:20</div><div class=\"fc-classic-F1o fc-classic-DIS fc-classic-TZ4 fc-classic-pKG fc-classic-OLq\">!habla Murga!</div></div></div></div></div></div><div class=\"fc-xp fc-classic-toR\"></div></div>",
+  "todayFound": false,
+  "otherMonthFound": false,
+  "todayButton": "<button type=\"button\" disabled=\"\" aria-pressed=\"false\" aria-label=\"Este mês\" class=\"fc-classic-dl6 fc-classic-1Wx fc-classic-dl1 fc-classic-1sP fc-classic-XpK fc-classic-sOR fc-classic-lYz fc-classic-vwH fc-classic-9yp fc-classic-RnT fc-classic-cfp fc-classic-Z9U fc-classic-Apf fc-classic-Ig4 fc-classic-vXO fc-classic-bqK fc-classic-aIH fc-classic-nQ5 fc-classic-JWq fc-classic-9Rj fc-classic-5ky fc-classic-Q3Z fc-classic-3Lc\">Hoje</button>"
 }
