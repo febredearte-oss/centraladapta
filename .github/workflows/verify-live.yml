@@ -1,0 +1,100 @@
+name: Verify Central Adapta Live
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/verify-live.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Wait for Cloudflare build
+        run: sleep 45
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture live calendar
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          import { writeFileSync, mkdirSync } from 'node:fs';
+          mkdirSync('live-check', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
+          const url = 'https://centraladapta.febredearte.workers.dev';
+          let error = null;
+          try {
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+            const calendarButton = page.locator('[data-page="calendar"]').first();
+            if (await calendarButton.count()) {
+              await calendarButton.click();
+              await page.waitForTimeout(2500);
+            }
+            const diagnostics = await page.evaluate(() => {
+              const today = document.querySelector('#fullCalendar .fc-day-today');
+              const todayNumber = today?.querySelector('.fc-daygrid-day-number')?.textContent?.trim() || null;
+              const todayTop = today?.querySelector('.fc-daygrid-day-top');
+              const todayTopBefore = todayTop ? getComputedStyle(todayTop, '::before').content : null;
+              const other = document.querySelector('#fullCalendar .fc-day-other');
+              const otherFrame = other?.querySelector('.fc-daygrid-day-frame');
+              return {
+                title: document.title,
+                href: location.href,
+                pageCalendarActive: document.querySelector('#page-calendar')?.classList.contains('active') || false,
+                todayCellFound: !!today,
+                todayNumber,
+                todayBadgeContent: todayTopBefore,
+                todayBackground: today ? getComputedStyle(today).backgroundColor : null,
+                todayBoxShadow: today ? getComputedStyle(today).boxShadow : null,
+                otherDayOpacity: otherFrame ? getComputedStyle(otherFrame).opacity : null,
+                patchStylePresent: !!document.getElementById('calendar-today-ux-v46'),
+                patchRuntimePresent: !!document.getElementById('calendar-today-runtime-v46'),
+                calendarText: document.querySelector('#page-calendar')?.innerText?.slice(0, 1200) || ''
+              };
+            });
+            writeFileSync('live-check/status.json', JSON.stringify({ ok: true, runId: process.env.GITHUB_RUN_ID, checkedAt: new Date().toISOString(), ...diagnostics }, null, 2));
+            await page.screenshot({ path: 'live-check/calendar-live.png', fullPage: true });
+          } catch (e) {
+            error = String(e?.stack || e);
+            writeFileSync('live-check/status.json', JSON.stringify({ ok: false, runId: process.env.GITHUB_RUN_ID, checkedAt: new Date().toISOString(), error }, null, 2));
+            await page.screenshot({ path: 'live-check/calendar-live.png', fullPage: true }).catch(() => {});
+          } finally {
+            await browser.close();
+          }
+          if (error) process.exitCode = 1;
+          EOF
+
+      - name: Upload live screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: central-adapta-live-check
+          path: live-check/
+          if-no-files-found: warn
+
+      - name: Record live diagnostics
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add live-check/status.json
+          git commit -m "ci: record live calendar verification" || true
+          git push
