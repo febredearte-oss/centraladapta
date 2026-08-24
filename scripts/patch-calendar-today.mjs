@@ -16,10 +16,10 @@ const openCalendarReplacement = `if(page==="calendar"){
       fullCalendarInstance.updateSize();
       requestAnimationFrame(()=>{
         const todayKey=isoDate(new Date());
-        const todayCell=document.querySelector(\`#fullCalendar [data-calendar-date="\${todayKey}"]\`);
+        const todayCell=document.querySelector(\`#fullCalendar [role="gridcell"][data-date="\${todayKey}"]\`);
         if(!todayCell)return;
         todayCell.classList.add("adapta-actual-today");
-        const top=todayCell.querySelector(".fc-daygrid-day-top");
+        const top=todayCell.firstElementChild;
         if(top&&!top.querySelector(".adapta-today-label")){
           const label=document.createElement("span");
           label.className="adapta-today-label";
@@ -38,26 +38,32 @@ if (!html.includes(openCalendarMarker)) {
 }
 html = html.replace(openCalendarMarker, openCalendarReplacement);
 
-const todayCss = `<style id="calendar-today-ux-v47">
-/* v47 — hoje calculado explicitamente pelo navegador, sem depender da classe interna do FullCalendar */
-#fullCalendar .fc-day-other{
+if (html.includes("  fullCalendarInstance.rerenderEvents();")) {
+  html = html.replace(
+    "  fullCalendarInstance.rerenderEvents();",
+    "  if(typeof fullCalendarInstance.rerenderEvents===\"function\")fullCalendarInstance.rerenderEvents();"
+  );
+}
+
+const todayCss = `<style id="calendar-today-ux-v48">
+/* v48 — compatível com a estrutura real do FullCalendar 7 */
+#fullCalendar [role="gridcell"].adapta-other-month{
   background:#fbfcfb !important;
 }
-#fullCalendar .fc-day-other .fc-daygrid-day-frame{
+#fullCalendar [role="gridcell"].adapta-other-month > *{
   opacity:.24 !important;
 }
-#fullCalendar .fc-day-other .fc-daygrid-day-number{
-  color:rgba(17,17,17,.24) !important;
-}
-#fullCalendar .fc-daygrid-day.adapta-actual-today{
+#fullCalendar [role="gridcell"].adapta-actual-today{
   background:#edf4f0 !important;
   box-shadow:inset 0 0 0 2px #0A3426 !important;
   position:relative;
   z-index:1;
 }
-#fullCalendar .fc-daygrid-day.adapta-actual-today .fc-daygrid-day-top{
-  justify-content:space-between !important;
+#fullCalendar [role="gridcell"].adapta-actual-today > :first-child{
+  display:flex !important;
   align-items:center !important;
+  justify-content:space-between !important;
+  gap:6px !important;
   padding:5px 5px 0 7px !important;
 }
 #fullCalendar .adapta-today-label{
@@ -74,8 +80,9 @@ const todayCss = `<style id="calendar-today-ux-v47">
   line-height:1;
   font-weight:800;
   letter-spacing:.09em;
+  flex:0 0 auto;
 }
-#fullCalendar .fc-daygrid-day.adapta-actual-today .fc-daygrid-day-number{
+#fullCalendar [role="gridcell"].adapta-actual-today [role="link"]{
   background:#0A3426 !important;
   color:#fff !important;
   border-radius:999px !important;
@@ -86,21 +93,16 @@ const todayCss = `<style id="calendar-today-ux-v47">
   justify-content:center !important;
   font-weight:800 !important;
   padding:0 !important;
-}
-#fullCalendar .fc-today-button,
-#fullCalendar .fc-today-button:disabled{
-  opacity:1 !important;
-  cursor:pointer !important;
-  filter:none !important;
+  flex:0 0 26px;
 }
 </style>`;
 
-html = html.replace(/<style id="calendar-today-ux-v46">[\s\S]*?<\/style>/, "");
-if (!html.includes('id="calendar-today-ux-v47"')) {
+html = html.replace(/<style id="calendar-today-ux-v4[67]">[\s\S]*?<\/style>/, "");
+if (!html.includes('id="calendar-today-ux-v48"')) {
   html = html.replace("</head>", `${todayCss}</head>`);
 }
 
-const todayRuntime = `<script id="calendar-today-runtime-v47">
+const todayRuntime = `<script id="calendar-today-runtime-v48">
 (function(){
   const root=document.getElementById("fullCalendar");
   if(!root)return;
@@ -113,13 +115,36 @@ const todayRuntime = `<script id="calendar-today-runtime-v47">
     return \`\${y}-\${m}-\${d}\`;
   }
 
+  function visibleMonthKey(){
+    const counts=new Map();
+    root.querySelectorAll('[role="gridcell"][data-date]').forEach(cell=>{
+      const key=(cell.getAttribute("data-date")||"").slice(0,7);
+      if(!key)return;
+      counts.set(key,(counts.get(key)||0)+1);
+    });
+    let best="";
+    let bestCount=-1;
+    counts.forEach((count,key)=>{
+      if(count>bestCount){best=key;bestCount=count;}
+    });
+    return best;
+  }
+
+  function markOtherMonths(){
+    const current=visibleMonthKey();
+    root.querySelectorAll('[role="gridcell"][data-date]').forEach(cell=>{
+      const date=cell.getAttribute("data-date")||"";
+      cell.classList.toggle("adapta-other-month",!!current&&!date.startsWith(current));
+    });
+  }
+
   function markActualToday(){
     root.querySelectorAll(".adapta-actual-today").forEach(cell=>cell.classList.remove("adapta-actual-today"));
     root.querySelectorAll(".adapta-today-label").forEach(label=>label.remove());
-    const cell=root.querySelector(\`[data-calendar-date="\${todayKey()}"]\`);
+    const cell=root.querySelector('[role="gridcell"][aria-current="date"]') || root.querySelector(\`[role="gridcell"][data-date="\${todayKey()}"]\`);
     if(!cell)return null;
     cell.classList.add("adapta-actual-today");
-    const top=cell.querySelector(".fc-daygrid-day-top");
+    const top=cell.firstElementChild;
     if(top){
       const label=document.createElement("span");
       label.className="adapta-today-label";
@@ -129,13 +154,24 @@ const todayRuntime = `<script id="calendar-today-runtime-v47">
     return cell;
   }
 
+  function todayButton(){
+    return [...root.querySelectorAll("button")].find(button=>button.textContent.trim().toLowerCase()==="hoje")||null;
+  }
+
   function enableTodayButton(){
-    const button=root.querySelector(".fc-today-button");
-    if(button){
-      button.disabled=false;
-      button.removeAttribute("disabled");
-      button.setAttribute("aria-disabled","false");
-    }
+    const button=todayButton();
+    if(!button)return;
+    button.disabled=false;
+    button.removeAttribute("disabled");
+    button.setAttribute("aria-disabled","false");
+    button.style.opacity="1";
+    button.style.cursor="pointer";
+  }
+
+  function refresh(){
+    markOtherMonths();
+    markActualToday();
+    enableTodayButton();
   }
 
   function scrollCurrentDay(){
@@ -146,32 +182,25 @@ const todayRuntime = `<script id="calendar-today-runtime-v47">
     window.scrollTo({top:Math.max(0,targetY),behavior:"smooth"});
   }
 
-  let scheduled=false;
-  function refresh(){
-    if(scheduled)return;
-    scheduled=true;
-    requestAnimationFrame(()=>{
-      scheduled=false;
-      markActualToday();
-      enableTodayButton();
-    });
-  }
-
-  const observer=new MutationObserver(refresh);
-  observer.observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:["disabled","class"]});
-  refresh();
-
+  requestAnimationFrame(()=>requestAnimationFrame(refresh));
+  root.addEventListener("click",()=>{
+    requestAnimationFrame(()=>requestAnimationFrame(refresh));
+  },true);
   document.addEventListener("click",event=>{
-    if(!event.target.closest("#fullCalendar .fc-today-button"))return;
-    requestAnimationFrame(()=>requestAnimationFrame(scrollCurrentDay));
+    const button=todayButton();
+    if(!button||!button.contains(event.target))return;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      refresh();
+      scrollCurrentDay();
+    }));
   });
 })();
 </script>`;
 
-html = html.replace(/<script id="calendar-today-runtime-v46">[\s\S]*?<\/script>/, "");
-if (!html.includes('id="calendar-today-runtime-v47"')) {
+html = html.replace(/<script id="calendar-today-runtime-v4[67]">[\s\S]*?<\/script>/, "");
+if (!html.includes('id="calendar-today-runtime-v48"')) {
   html = html.replace("</body>", `${todayRuntime}</body>`);
 }
 
 writeFileSync(FILE, html, "utf8");
-console.log("Central Adapta v47: hoje marcado pelo próprio calendário local, dias externos atenuados e foco automático na semana atual.");
+console.log("Central Adapta v48: hoje e dias de outro mês corrigidos para o DOM real do FullCalendar 7; rerenderEvents protegido.");
