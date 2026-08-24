@@ -24,7 +24,7 @@ jobs:
           node-version: "22"
 
       - name: Wait for Cloudflare build
-        run: sleep 45
+        run: sleep 70
 
       - name: Install Playwright
         run: |
@@ -46,13 +46,12 @@ jobs:
             const calendarButton = page.locator('[data-page="calendar"]').first();
             if (await calendarButton.count()) {
               await calendarButton.click();
-              await page.waitForTimeout(2500);
+              await page.waitForTimeout(3000);
             }
             const diagnostics = await page.evaluate(() => {
-              const today = document.querySelector('#fullCalendar .fc-day-today');
+              const today = document.querySelector('#fullCalendar .adapta-actual-today');
               const todayNumber = today?.querySelector('.fc-daygrid-day-number')?.textContent?.trim() || null;
-              const todayTop = today?.querySelector('.fc-daygrid-day-top');
-              const todayTopBefore = todayTop ? getComputedStyle(todayTop, '::before').content : null;
+              const todayLabel = today?.querySelector('.adapta-today-label')?.textContent?.trim() || null;
               const other = document.querySelector('#fullCalendar .fc-day-other');
               const otherFrame = other?.querySelector('.fc-daygrid-day-frame');
               return {
@@ -61,12 +60,12 @@ jobs:
                 pageCalendarActive: document.querySelector('#page-calendar')?.classList.contains('active') || false,
                 todayCellFound: !!today,
                 todayNumber,
-                todayBadgeContent: todayTopBefore,
+                todayLabel,
                 todayBackground: today ? getComputedStyle(today).backgroundColor : null,
                 todayBoxShadow: today ? getComputedStyle(today).boxShadow : null,
                 otherDayOpacity: otherFrame ? getComputedStyle(otherFrame).opacity : null,
-                patchStylePresent: !!document.getElementById('calendar-today-ux-v46'),
-                patchRuntimePresent: !!document.getElementById('calendar-today-runtime-v46'),
+                patchStylePresent: !!document.getElementById('calendar-today-ux-v47'),
+                patchRuntimePresent: !!document.getElementById('calendar-today-runtime-v47'),
                 calendarText: document.querySelector('#page-calendar')?.innerText?.slice(0, 1200) || ''
               };
             });
