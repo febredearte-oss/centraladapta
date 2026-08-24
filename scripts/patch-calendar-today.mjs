@@ -12,23 +12,11 @@ const openCalendarReplacement = `if(page==="calendar"){
     renderCalendar();
     requestAnimationFrame(()=>{
       if(!fullCalendarInstance)return;
-      fullCalendarInstance.today();
-      fullCalendarInstance.updateSize();
+      if(typeof fullCalendarInstance.today==="function")fullCalendarInstance.today();
+      if(typeof fullCalendarInstance.updateSize==="function")fullCalendarInstance.updateSize();
       requestAnimationFrame(()=>{
-        const todayKey=isoDate(new Date());
-        const todayCell=document.querySelector(\`#fullCalendar [role="gridcell"][data-date="\${todayKey}"]\`);
-        if(!todayCell)return;
-        todayCell.classList.add("adapta-actual-today");
-        const top=todayCell.firstElementChild;
-        if(top&&!top.querySelector(".adapta-today-label")){
-          const label=document.createElement("span");
-          label.className="adapta-today-label";
-          label.textContent="HOJE";
-          top.prepend(label);
-        }
-        const headerHeight=document.querySelector(".shell-header")?.getBoundingClientRect().height||0;
-        const targetY=todayCell.getBoundingClientRect().top+window.scrollY-headerHeight-190;
-        window.scrollTo({top:Math.max(0,targetY),behavior:"smooth"});
+        window.__adaptaRefreshCalendarToday?.();
+        window.__adaptaScrollCalendarToday?.();
       });
     });
   }`;
@@ -44,14 +32,20 @@ if (html.includes("  fullCalendarInstance.rerenderEvents();")) {
     "  if(typeof fullCalendarInstance.rerenderEvents===\"function\")fullCalendarInstance.rerenderEvents();"
   );
 }
+if (html.includes("  fullCalendarInstance.updateSize();")) {
+  html = html.replace(
+    "  fullCalendarInstance.updateSize();",
+    "  if(typeof fullCalendarInstance.updateSize===\"function\")fullCalendarInstance.updateSize();"
+  );
+}
 
-const todayCss = `<style id="calendar-today-ux-v48">
-/* v48 — compatível com a estrutura real do FullCalendar 7 */
+const todayCss = `<style id="calendar-today-ux-v49">
+/* v49 — DOM real do FullCalendar 7, sem depender das classes antigas */
 #fullCalendar [role="gridcell"].adapta-other-month{
   background:#fbfcfb !important;
 }
 #fullCalendar [role="gridcell"].adapta-other-month > *{
-  opacity:.24 !important;
+  opacity:.22 !important;
 }
 #fullCalendar [role="gridcell"].adapta-actual-today{
   background:#edf4f0 !important;
@@ -97,12 +91,12 @@ const todayCss = `<style id="calendar-today-ux-v48">
 }
 </style>`;
 
-html = html.replace(/<style id="calendar-today-ux-v4[67]">[\s\S]*?<\/style>/, "");
-if (!html.includes('id="calendar-today-ux-v48"')) {
+html = html.replace(/<style id="calendar-today-ux-v4[678]">[\s\S]*?<\/style>/, "");
+if (!html.includes('id="calendar-today-ux-v49"')) {
   html = html.replace("</head>", `${todayCss}</head>`);
 }
 
-const todayRuntime = `<script id="calendar-today-runtime-v48">
+const todayRuntime = `<script id="calendar-today-runtime-v49">
 (function(){
   const root=document.getElementById("fullCalendar");
   if(!root)return;
@@ -182,6 +176,9 @@ const todayRuntime = `<script id="calendar-today-runtime-v48">
     window.scrollTo({top:Math.max(0,targetY),behavior:"smooth"});
   }
 
+  window.__adaptaRefreshCalendarToday=refresh;
+  window.__adaptaScrollCalendarToday=scrollCurrentDay;
+
   requestAnimationFrame(()=>requestAnimationFrame(refresh));
   root.addEventListener("click",()=>{
     requestAnimationFrame(()=>requestAnimationFrame(refresh));
@@ -197,10 +194,10 @@ const todayRuntime = `<script id="calendar-today-runtime-v48">
 })();
 </script>`;
 
-html = html.replace(/<script id="calendar-today-runtime-v4[67]">[\s\S]*?<\/script>/, "");
-if (!html.includes('id="calendar-today-runtime-v48"')) {
+html = html.replace(/<script id="calendar-today-runtime-v4[678]">[\s\S]*?<\/script>/, "");
+if (!html.includes('id="calendar-today-runtime-v49"')) {
   html = html.replace("</body>", `${todayRuntime}</body>`);
 }
 
 writeFileSync(FILE, html, "utf8");
-console.log("Central Adapta v48: hoje e dias de outro mês corrigidos para o DOM real do FullCalendar 7; rerenderEvents protegido.");
+console.log("Central Adapta v49: hoje realçado no FullCalendar 7 e APIs incompatíveis protegidas.");
