@@ -7,8 +7,14 @@ Aplicação interna da Central de Comunicação Adapta, publicada em Cloudflare 
 - `src/worker-auto-seed.js`: API, autenticação e bootstrap automático do D1
 - `data/seed.part*.js`: base inicial versionada da Central, usada apenas para inicialização/migração
 - `source/index.part*.b64`: frontend empacotado; o build recria `public/index.html`
+- `source/guiadehash/`: fonte do guia público; o build recria `public/guiadehash.html` e seus assets
 - Cloudflare D1 (`central-adapta-db`): fonte de verdade dos dados editoriais e operacionais depois da inicialização
 - Cloudflare Workers Builds: deploy automático a cada push na branch `main`
+
+## Rotas públicas
+
+- `/care`: preview Adapta Care
+- `/guiadehash`: guia interativo sobre extrações e hash
 
 ## Regra de dados
 
@@ -18,7 +24,7 @@ Depois disso, o conteúdo vivo não é reimportado do GitHub a cada abertura: al
 
 Backups e `.dev.vars` continuam fora do Git.
 
-O `wrangler.jsonc` executa `node scripts/materialize-index.mjs` antes de cada deploy, então o HTML gerado não precisa ser versionado.
+O `wrangler.jsonc` executa os materializadores necessários antes de cada deploy, então os HTMLs gerados não precisam ser versionados.
 
 > O nome `centraladapta` corresponde ao Worker conectado a este repositório no Cloudflare Builds.
 
