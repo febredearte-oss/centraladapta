@@ -29,4 +29,4 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build and validate Central Adapta
-        run: node scripts/materialize-index.mjs && node scripts/patch-calendar-theme.mjs && node scripts/patch-header-brand.mjs && node scripts/patch-ui-polish.mjs && node scripts/patch-system-visual-cleanup.mjs && node scripts/patch-sidebar-nav.mjs && node scripts/patch-overview-workdesk.mjs && node scripts/patch-open-layout-polish.mjs && node scripts/patch-svg-id-collisions.mjs && node scripts/patch-color-palette.mjs && node scripts/patch-system-visual-compact.mjs && node scripts/patch-slot-posted.mjs
+        run: node scripts/materialize-index.mjs && node scripts/patch-calendar-theme.mjs && node scripts/patch-header-brand.mjs && node scripts/patch-ui-polish.mjs && node scripts/patch-system-visual-cleanup.mjs && node scripts/patch-sidebar-nav.mjs && node scripts/patch-overview-workdesk.mjs && node scripts/patch-open-layout-polish.mjs && node scripts/patch-svg-id-collisions.mjs && node scripts/patch-color-palette.mjs && node scripts/patch-system-visual-compact.mjs && node scripts/patch-slot-posted.mjs && node scripts/patch-calendar-today.mjs
