@@ -1,12 +1,13 @@
-<!doctype html>
-<html lang="pt-BR" data-current-lang="pt">
+<!DOCTYPE html>
+
+<html data-current-lang="pt" lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Adapta Care — Preview interno Q3</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&amp;family=Montserrat:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <style>
 :root{
   --paper:#fffdf8;
@@ -48,8 +49,9 @@ body{
 
 .hero{
   display:grid;
-  grid-template-columns:1fr .94fr;
-  min-height:500px;
+  grid-template-columns:minmax(0,1fr) 480px;
+  min-height:360px;
+  align-items:center;
 }
 .hero-copy{padding:var(--s4);display:flex;flex-direction:column;justify-content:center}
 .logo{width:min(450px,100%);margin-bottom:var(--s3)}
@@ -57,7 +59,8 @@ body{
 .kicker:before{content:"";width:34px;height:2px;background:var(--green)}
 h1{margin:0;font-family:"Gilda Display",serif;font-size:clamp(48px,6vw,82px);line-height:.95;font-weight:400;letter-spacing:-.02em}
 .hero-copy p{margin:var(--s2) 0 0;max-width:720px;font-size:15px;line-height:1.6;color:var(--muted)}
-.hero-visual img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-visual{display:flex;align-items:center;justify-content:center;padding:24px}
+.hero-visual img{width:480px;max-width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:22px}
 
 .section{margin-top:18px;padding:var(--s3)}
 .section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)}
@@ -84,6 +87,12 @@ h1{margin:0;font-family:"Gilda Display",serif;font-size:clamp(48px,6vw,82px);lin
 
 /* visual cards */
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.experience-grid{grid-template-columns:repeat(3,320px);justify-content:center;max-width:1000px;margin:0 auto}
+.experience-grid .card{width:320px}
+.experience-grid .card img{width:320px;height:180px;aspect-ratio:auto}
+.partners-grid{grid-template-columns:repeat(3,200px);justify-content:center;max-width:650px;margin:0 auto}
+.partners-grid .card{width:200px}
+.partners-grid .card img,.partners-grid .card.portrait img{width:200px;height:250px;aspect-ratio:auto}
 .card{background:#fff;border:1px solid var(--line);border-radius:var(--r2);overflow:hidden}
 .card img{display:block;width:100%;aspect-ratio:16/8;object-fit:cover}
 .card.portrait img{aspect-ratio:5/4}
@@ -106,8 +115,8 @@ h1{margin:0;font-family:"Gilda Display",serif;font-size:clamp(48px,6vw,82px);lin
 .note{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border-radius:var(--r2);padding:20px}
 .note h3{margin:0 0 8px;font-family:"Gilda Display",serif;font-size:30px;font-weight:400;line-height:1}
 .note p{margin:0;color:rgba(255,255,255,.86);font-size:13px;line-height:1.55}
-.result-card{display:grid;grid-template-columns:1fr;min-height:0}
-.result-card img{width:100%;height:100%;max-height:320px;object-fit:cover;display:block;border-radius:var(--r2)}
+.result-card{display:flex;align-items:flex-start;justify-content:center;min-height:0}
+.result-card img{width:200px;height:250px;object-fit:cover;display:block;border-radius:var(--r2)}
 
 .closer{margin-top:18px;background:var(--green);color:#fff;border-radius:28px;padding:26px 28px}
 .closer h2{margin:0 0 8px;font-family:"Gilda Display",serif;font-size:38px;font-weight:400}
@@ -123,8 +132,14 @@ html[data-current-lang="en"] strong[data-lang="en"]{display:inline!important}
 
 @media(max-width:1050px){
   .hero{grid-template-columns:1fr}
-  .hero-visual img{max-height:480px}
-  .macro-flow,.grid3,.q3-grid{grid-template-columns:1fr}
+  .hero-visual{padding:0 18px 24px}
+  .hero-visual img{width:min(480px,100%)}
+  .macro-flow,.q3-grid{grid-template-columns:1fr}
+  .experience-grid{grid-template-columns:1fr;max-width:320px}
+  .experience-grid .card{width:100%}
+  .experience-grid .card img{width:100%;height:auto;aspect-ratio:16/9}
+  .partners-grid{grid-template-columns:1fr;max-width:200px}
+  .partners-grid .card{width:200px}
   .checks{grid-template-columns:1fr}
   .q3-side{grid-template-rows:auto auto}
 }
@@ -133,238 +148,217 @@ html[data-current-lang="en"] strong[data-lang="en"]{display:inline!important}
   .section{margin-top:14px}
   .section-head{margin-bottom:18px}
   .macro{min-height:auto}
+  .result-card img{width:200px;height:250px}
 }
 </style>
 </head>
 <body>
 <main class="page">
-
 <div class="langbar">
-  <div class="lang-toggle">
-    <button id="ptBtn" class="active" onclick="setLang('pt')">PT</button>
-    <button id="enBtn" onclick="setLang('en')">EN</button>
-  </div>
+<div class="lang-toggle">
+<button class="active" id="ptBtn" onclick="setLang('pt')">PT</button>
+<button id="enBtn" onclick="setLang('en')">EN</button>
 </div>
-
+</div>
 <section class="panel hero">
-  <div class="hero-copy">
-    <img class="logo" src="/brand/adapta-logo-board-trim.png" alt="Adapta Associação Canábica">
-    <div class="kicker">
-      <span data-lang="pt">Adapta Care · prioridade do 3º trimestre</span>
-      <span data-lang="en">Adapta Care · third-quarter priority</span>
-    </div>
-    <h1 data-lang="pt">Continuar o cuidado, mesmo durante a viagem.</h1>
-    <h1 data-lang="en">Continuity of care, even while travelling.</h1>
-    <p data-lang="pt">A Adapta Care será uma frente voltada a visitantes estrangeiros que já utilizam cannabis medicinal e vêm ao Ceará. A proposta é oferecer uma jornada simples, digital e acompanhada até a entrega na hospedagem.</p>
-    <p data-lang="en">Adapta Care will support international visitors who already use medical cannabis and are travelling to Ceará. The goal is a simple, digital journey with support through delivery to the accommodation.</p>
-  </div>
-  <div class="hero-visual">
-    <img src="/care/assets/landing.webp" alt="Adapta Care">
-  </div>
+<div class="hero-copy">
+<img alt="Adapta Associação Canábica" class="logo" src="/brand/adapta-logo-board-trim.png"/>
+<div class="kicker">
+<span data-lang="pt">Adapta Care · prioridade do 3º trimestre</span>
+<span data-lang="en">Adapta Care · third-quarter priority</span>
+</div>
+<h1 data-lang="pt">Continuar o cuidado, mesmo durante a viagem.</h1>
+<h1 data-lang="en">Continuity of care, even while travelling.</h1>
+<p data-lang="pt">A Adapta Care será uma frente voltada a visitantes estrangeiros que já utilizam cannabis medicinal e vêm ao Ceará. A proposta é oferecer uma jornada simples, digital e acompanhada até a entrega na hospedagem.</p>
+<p data-lang="en">Adapta Care will support international visitors who already use medical cannabis and are travelling to Ceará. The goal is a simple, digital journey with support through delivery to the accommodation.</p>
+</div>
+<div class="hero-visual">
+<img alt="Adapta Care" src="/care/assets/landing.webp"/>
+</div>
 </section>
-
 <section class="panel section">
-  <div class="section-head">
-    <div>
-      <h2 data-lang="pt">A jornada, em três momentos</h2>
-      <h2 data-lang="en">The journey, in three moments</h2>
-      <p data-lang="pt">Em vez de seis caixas pequenas, a experiência fica organizada em três blocos fáceis de entender.</p>
-      <p data-lang="en">Instead of six small boxes, the experience is organized into three clear stages.</p>
-    </div>
-  </div>
-
-  <div class="macro-flow">
-    <article class="macro">
-      <div class="n">1</div>
-      <h3 data-lang="pt">Descoberta</h3>
-      <h3 data-lang="en">Discovery</h3>
-      <p data-lang="pt">O visitante encontra a Adapta Care antes ou durante a viagem e chega à landing page.</p>
-      <p data-lang="en">The visitor discovers Adapta Care before or during the trip and reaches the landing page.</p>
-      <div class="micro-steps">
-        <span>RocketMed Ads</span><span>QR</span><span>Landing page</span>
-      </div>
-    </article>
-
-    <article class="macro">
-      <div class="n">2</div>
-      <h3 data-lang="pt">Atendimento</h3>
-      <h3 data-lang="en">Patient support</h3>
-      <p data-lang="pt">A Adapta assume a relação por WhatsApp, orienta a consulta e organiza o pedido.</p>
-      <p data-lang="en">Adapta takes over through WhatsApp, guides the consultation and organizes the order.</p>
-      <div class="micro-steps">
-        <span>WhatsApp</span><span data-lang="pt">Consulta online</span><span data-lang="en">Online consultation</span><span>Portal</span>
-      </div>
-    </article>
-
-    <article class="macro">
-      <div class="n">3</div>
-      <h3 data-lang="pt">Continuidade</h3>
-      <h3 data-lang="en">Continuity</h3>
-      <p data-lang="pt">O pedido chega à hospedagem e o paciente segue o tratamento durante a estadia.</p>
-      <p data-lang="en">The order reaches the accommodation and the patient continues treatment during the stay.</p>
-      <div class="micro-steps">
-        <span data-lang="pt">Entrega</span><span data-lang="en">Delivery</span><span data-lang="pt">Hospedagem</span><span data-lang="en">Accommodation</span>
-      </div>
-    </article>
-  </div>
+<div class="section-head">
+<div>
+<h2 data-lang="pt">A jornada, em três momentos</h2>
+<h2 data-lang="en">The journey, in three moments</h2>
+<p data-lang="pt">Em vez de seis caixas pequenas, a experiência fica organizada em três blocos fáceis de entender.</p>
+<p data-lang="en">Instead of six small boxes, the experience is organized into three clear stages.</p>
+</div>
+</div>
+<div class="macro-flow">
+<article class="macro">
+<div class="n">1</div>
+<h3 data-lang="pt">Descoberta</h3>
+<h3 data-lang="en">Discovery</h3>
+<p data-lang="pt">O visitante encontra a Adapta Care antes ou durante a viagem e chega à landing page.</p>
+<p data-lang="en">The visitor discovers Adapta Care before or during the trip and reaches the landing page.</p>
+<div class="micro-steps">
+<span>RocketMed Ads</span><span>QR</span><span>Landing page</span>
+</div>
+</article>
+<article class="macro">
+<div class="n">2</div>
+<h3 data-lang="pt">Atendimento</h3>
+<h3 data-lang="en">Patient support</h3>
+<p data-lang="pt">A Adapta assume a relação por WhatsApp, orienta a consulta e organiza o pedido.</p>
+<p data-lang="en">Adapta takes over through WhatsApp, guides the consultation and organizes the order.</p>
+<div class="micro-steps">
+<span>WhatsApp</span><span data-lang="pt">Consulta online</span><span data-lang="en">Online consultation</span><span>Portal</span>
+</div>
+</article>
+<article class="macro">
+<div class="n">3</div>
+<h3 data-lang="pt">Continuidade</h3>
+<h3 data-lang="en">Continuity</h3>
+<p data-lang="pt">O pedido chega à hospedagem e o paciente segue o tratamento durante a estadia.</p>
+<p data-lang="en">The order reaches the accommodation and the patient continues treatment during the stay.</p>
+<div class="micro-steps">
+<span data-lang="pt">Entrega</span><span data-lang="en">Delivery</span><span data-lang="pt">Hospedagem</span><span data-lang="en">Accommodation</span>
+</div>
+</article>
+</div>
 </section>
-
 <section class="panel section">
-  <div class="section-head">
-    <div>
-      <h2 data-lang="pt">Como a experiência funciona</h2>
-      <h2 data-lang="en">How the experience works</h2>
-      <p data-lang="pt">Os três momentos centrais da operação digital da Adapta Care.</p>
-      <p data-lang="en">The three core moments of the Adapta Care digital operation.</p>
-    </div>
-  </div>
-
-  <div class="grid3">
-    <article class="card">
-      <img src="/care/assets/whatsapp.webp" alt="WhatsApp Adapta Care">
-      <div class="copy">
-        <h3 data-lang="pt">WhatsApp</h3><h3 data-lang="en">WhatsApp</h3>
-        <p data-lang="pt">Acolhimento em inglês, espanhol ou português.</p>
-        <p data-lang="en">Patient support in English, Spanish or Portuguese.</p>
-      </div>
-    </article>
-
-    <article class="card">
-      <img src="/care/assets/consultation.webp" alt="Consulta online">
-      <div class="copy">
-        <h3 data-lang="pt">Consulta online</h3><h3 data-lang="en">Online consultation</h3>
-        <p data-lang="pt">Primeira consulta nacional sem sair da hospedagem.</p>
-        <p data-lang="en">First Brazilian consultation without leaving the accommodation.</p>
-      </div>
-    </article>
-
-    <article class="card">
-      <img src="/care/assets/portal.webp" alt="Portal do associado">
-      <div class="copy">
-        <h3 data-lang="pt">Portal do associado</h3><h3 data-lang="en">Member portal</h3>
-        <p data-lang="pt">Pedido, status e destino de entrega em um único fluxo.</p>
-        <p data-lang="en">Order, status and delivery destination in one flow.</p>
-      </div>
-    </article>
-  </div>
+<div class="section-head">
+<div>
+<h2 data-lang="pt">Como a experiência funciona</h2>
+<h2 data-lang="en">How the experience works</h2>
+<p data-lang="pt">Os três momentos centrais da operação digital da Adapta Care.</p>
+<p data-lang="en">The three core moments of the Adapta Care digital operation.</p>
+</div>
+</div>
+<div class="grid3 experience-grid">
+<article class="card">
+<img alt="WhatsApp Adapta Care" src="/care/assets/whatsapp.webp"/>
+<div class="copy">
+<h3 data-lang="pt">WhatsApp</h3><h3 data-lang="en">WhatsApp</h3>
+<p data-lang="pt">Acolhimento em inglês, espanhol ou português.</p>
+<p data-lang="en">Patient support in English, Spanish or Portuguese.</p>
+</div>
+</article>
+<article class="card">
+<img alt="Consulta online" src="/care/assets/consultation.webp"/>
+<div class="copy">
+<h3 data-lang="pt">Consulta online</h3><h3 data-lang="en">Online consultation</h3>
+<p data-lang="pt">Primeira consulta nacional sem sair da hospedagem.</p>
+<p data-lang="en">First Brazilian consultation without leaving the accommodation.</p>
+</div>
+</article>
+<article class="card">
+<img alt="Portal do associado" src="/care/assets/portal.webp"/>
+<div class="copy">
+<h3 data-lang="pt">Portal do associado</h3><h3 data-lang="en">Member portal</h3>
+<p data-lang="pt">Pedido, status e destino de entrega em um único fluxo.</p>
+<p data-lang="en">Order, status and delivery destination in one flow.</p>
+</div>
+</article>
+</div>
 </section>
-
 <section class="panel section">
-  <div class="section-head">
-    <div>
-      <h2 data-lang="pt">Entrega e presença em pontos parceiros</h2>
-      <h2 data-lang="en">Delivery and partner locations</h2>
-      <p data-lang="pt">A operação é digital, complementada pela entrega e pela sinalização em pontos de circulação de visitantes estrangeiros.</p>
-      <p data-lang="en">The operation is digital, complemented by delivery and visibility in partner locations frequented by international visitors.</p>
-    </div>
-  </div>
-
-  <div class="grid3">
-    <article class="card portrait">
-      <img src="/care/assets/delivery.webp" alt="Entrega na hospedagem">
-      <div class="copy">
-        <h3 data-lang="pt">Entrega na hospedagem</h3><h3 data-lang="en">Delivery to the accommodation</h3>
-        <p data-lang="pt">Caixa kraft discreta entregue no hotel, hostel ou endereço informado.</p>
-        <p data-lang="en">A discreet kraft box delivered to the hotel, hostel or temporary stay address.</p>
-      </div>
-    </article>
-
-    <article class="card portrait">
-      <img src="/care/assets/hostel.webp" alt="Hostel parceiro">
-      <div class="copy">
-        <h3 data-lang="pt">Hostels parceiros</h3><h3 data-lang="en">Partner hostels</h3>
-        <p data-lang="pt">Estandartes com QR code em recepções e áreas comuns.</p>
-        <p data-lang="en">QR-code wall banners in receptions and common areas.</p>
-      </div>
-    </article>
-
-    <article class="card portrait">
-      <img src="/care/assets/kite.webp" alt="Kite">
-      <div class="copy">
-        <h3 data-lang="pt">Escolas e competições de kite</h3><h3 data-lang="en">Kite schools and competitions</h3>
-        <p data-lang="pt">Parcerias e sinalização para ampliar o alcance entre estrangeiros.</p>
-        <p data-lang="en">Partnerships and signage to expand reach among international visitors.</p>
-      </div>
-    </article>
-  </div>
+<div class="section-head">
+<div>
+<h2 data-lang="pt">Entrega e presença em pontos parceiros</h2>
+<h2 data-lang="en">Delivery and partner locations</h2>
+<p data-lang="pt">A operação é digital, complementada pela entrega e pela sinalização em pontos de circulação de visitantes estrangeiros.</p>
+<p data-lang="en">The operation is digital, complemented by delivery and visibility in partner locations frequented by international visitors.</p>
+</div>
+</div>
+<div class="grid3 partners-grid">
+<article class="card portrait">
+<img alt="Entrega na hospedagem" src="/care/assets/delivery.webp"/>
+<div class="copy">
+<h3 data-lang="pt">Entrega na hospedagem</h3><h3 data-lang="en">Delivery to the accommodation</h3>
+<p data-lang="pt">Caixa kraft discreta entregue no hotel, hostel ou endereço informado.</p>
+<p data-lang="en">A discreet kraft box delivered to the hotel, hostel or temporary stay address.</p>
+</div>
+</article>
+<article class="card portrait">
+<img alt="Hostel parceiro" src="/care/assets/hostel.webp"/>
+<div class="copy">
+<h3 data-lang="pt">Hostels parceiros</h3><h3 data-lang="en">Partner hostels</h3>
+<p data-lang="pt">Estandartes com QR code em recepções e áreas comuns.</p>
+<p data-lang="en">QR-code wall banners in receptions and common areas.</p>
+</div>
+</article>
+<article class="card portrait">
+<img alt="Kite" src="/care/assets/kite.webp"/>
+<div class="copy">
+<h3 data-lang="pt">Escolas e competições de kite</h3><h3 data-lang="en">Kite schools and competitions</h3>
+<p data-lang="pt">Parcerias e sinalização para ampliar o alcance entre estrangeiros.</p>
+<p data-lang="en">Partnerships and signage to expand reach among international visitors.</p>
+</div>
+</article>
+</div>
 </section>
-
 <section class="panel section">
-  <div class="section-head">
-    <div>
-      <h2 data-lang="pt">Prioridade do terceiro trimestre</h2>
-      <h2 data-lang="en">Third-quarter priority</h2>
-      <p data-lang="pt">O foco do Q3 é sair da ideia para uma operação pronta: validar, estruturar e implantar.</p>
-      <p data-lang="en">The Q3 focus is to move from concept to a ready operation: validate, structure and deploy.</p>
-    </div>
-    <div class="tag">
-      <span data-lang="pt">plano executivo</span>
-      <span data-lang="en">executive plan</span>
-    </div>
-  </div>
-
-  <div class="q3-grid">
-    <div class="phases">
-      <article class="phase">
-        <div class="phase-top"><div class="n">1</div><h3 data-lang="pt">Validar a operação</h3><h3 data-lang="en">Validate the operation</h3></div>
-        <p data-lang="pt">Confirmar que a frente pode funcionar com segurança, regularidade e sustentabilidade.</p>
-        <p data-lang="en">Confirm that the initiative can operate safely, compliantly and sustainably.</p>
-        <div class="checks">
-          <div><strong data-lang="pt">Jurídico</strong><strong data-lang="en">Legal</strong> · <span data-lang="pt">regras e responsabilidades</span><span data-lang="en">rules and responsibilities</span></div>
-          <div><strong data-lang="pt">Contábil</strong><strong data-lang="en">Accounting</strong> · <span data-lang="pt">cobranças e fluxos</span><span data-lang="en">billing and flows</span></div>
-          <div><strong data-lang="pt">Logística</strong><strong data-lang="en">Logistics</strong> · <span data-lang="pt">prazos e cobertura</span><span data-lang="en">timelines and coverage</span></div>
-          <div><strong data-lang="pt">Operação</strong><strong data-lang="en">Operations</strong> · <span data-lang="pt">acolhimento e suporte</span><span data-lang="en">support and follow-up</span></div>
-        </div>
-      </article>
-
-      <article class="phase">
-        <div class="phase-top"><div class="n">2</div><h3 data-lang="pt">Preparar o atendimento</h3><h3 data-lang="en">Prepare patient support</h3></div>
-        <p data-lang="pt">Estruturar a jornada online sem criar ponto físico da Adapta.</p>
-        <p data-lang="en">Structure the online journey without creating a physical Adapta location.</p>
-        <div class="checks">
-          <div><strong>WhatsApp</strong> · <span data-lang="pt">acolhimento internacional</span><span data-lang="en">international support</span></div>
-          <div><strong data-lang="pt">Idiomas</strong><strong data-lang="en">Languages</strong> · <span data-lang="pt">inglês e espanhol</span><span data-lang="en">English and Spanish</span></div>
-          <div><strong data-lang="pt">Consulta</strong><strong data-lang="en">Consultation</strong> · <span data-lang="pt">online</span><span data-lang="en">online</span></div>
-          <div><strong>Portal</strong> · <span data-lang="pt">pedido e acompanhamento</span><span data-lang="en">order and tracking</span></div>
-        </div>
-      </article>
-
-      <article class="phase">
-        <div class="phase-top"><div class="n">3</div><h3 data-lang="pt">Implantar a campanha</h3><h3 data-lang="en">Deploy the campaign</h3></div>
-        <p data-lang="pt">Ativar captação digital e presença em pontos parceiros.</p>
-        <p data-lang="en">Activate digital acquisition and partner-location visibility.</p>
-        <div class="checks">
-          <div><strong>Landing page</strong> · <span data-lang="pt">versão internacional</span><span data-lang="en">international version</span></div>
-          <div><strong>Ads</strong> · <span data-lang="pt">orçamento com RocketMed</span><span data-lang="en">budget with RocketMed</span></div>
-          <div><strong>Hostels</strong> · <span data-lang="pt">estandartes + QR</span><span data-lang="en">wall banners + QR</span></div>
-          <div><strong>Kite</strong> · <span data-lang="pt">apoios + bandeirões</span><span data-lang="en">partnerships + flags</span></div>
-        </div>
-      </article>
-    </div>
-
-    <div class="q3-side">
-      <div class="note">
-        <h3 data-lang="pt">Prioridade do Q3</h3>
-        <h3 data-lang="en">Q3 priority</h3>
-        <p data-lang="pt">Começamos por jurídico, contábil, logística e operação. Depois estruturamos o atendimento. Só então colocamos landing page, ads e sinalização no ar.</p>
-        <p data-lang="en">We start with legal, accounting, logistics and operations. Then we structure patient support. Only after that do we launch the landing page, ads and signage.</p>
-      </div>
-      <div class="result-card">
-        <img src="/care/assets/bedside.webp" alt="Continuidade do tratamento durante a estadia">
-      </div>
-    </div>
-  </div>
+<div class="section-head">
+<div>
+<h2 data-lang="pt">Prioridade do terceiro trimestre</h2>
+<h2 data-lang="en">Third-quarter priority</h2>
+<p data-lang="pt">O foco do Q3 é sair da ideia para uma operação pronta: validar, estruturar e implantar.</p>
+<p data-lang="en">The Q3 focus is to move from concept to a ready operation: validate, structure and deploy.</p>
+</div>
+<div class="tag">
+<span data-lang="pt">plano executivo</span>
+<span data-lang="en">executive plan</span>
+</div>
+</div>
+<div class="q3-grid">
+<div class="phases">
+<article class="phase">
+<div class="phase-top"><div class="n">1</div><h3 data-lang="pt">Validar a operação</h3><h3 data-lang="en">Validate the operation</h3></div>
+<p data-lang="pt">Confirmar que a frente pode funcionar com segurança, regularidade e sustentabilidade.</p>
+<p data-lang="en">Confirm that the initiative can operate safely, compliantly and sustainably.</p>
+<div class="checks">
+<div><strong data-lang="pt">Jurídico</strong><strong data-lang="en">Legal</strong> · <span data-lang="pt">regras e responsabilidades</span><span data-lang="en">rules and responsibilities</span></div>
+<div><strong data-lang="pt">Contábil</strong><strong data-lang="en">Accounting</strong> · <span data-lang="pt">cobranças e fluxos</span><span data-lang="en">billing and flows</span></div>
+<div><strong data-lang="pt">Logística</strong><strong data-lang="en">Logistics</strong> · <span data-lang="pt">prazos e cobertura</span><span data-lang="en">timelines and coverage</span></div>
+<div><strong data-lang="pt">Operação</strong><strong data-lang="en">Operations</strong> · <span data-lang="pt">acolhimento e suporte</span><span data-lang="en">support and follow-up</span></div>
+</div>
+</article>
+<article class="phase">
+<div class="phase-top"><div class="n">2</div><h3 data-lang="pt">Preparar o atendimento</h3><h3 data-lang="en">Prepare patient support</h3></div>
+<p data-lang="pt">Estruturar a jornada online sem criar ponto físico da Adapta.</p>
+<p data-lang="en">Structure the online journey without creating a physical Adapta location.</p>
+<div class="checks">
+<div><strong>WhatsApp</strong> · <span data-lang="pt">acolhimento internacional</span><span data-lang="en">international support</span></div>
+<div><strong data-lang="pt">Idiomas</strong><strong data-lang="en">Languages</strong> · <span data-lang="pt">inglês e espanhol</span><span data-lang="en">English and Spanish</span></div>
+<div><strong data-lang="pt">Consulta</strong><strong data-lang="en">Consultation</strong> · <span data-lang="pt">online</span><span data-lang="en">online</span></div>
+<div><strong>Portal</strong> · <span data-lang="pt">pedido e acompanhamento</span><span data-lang="en">order and tracking</span></div>
+</div>
+</article>
+<article class="phase">
+<div class="phase-top"><div class="n">3</div><h3 data-lang="pt">Implantar a campanha</h3><h3 data-lang="en">Deploy the campaign</h3></div>
+<p data-lang="pt">Ativar captação digital e presença em pontos parceiros.</p>
+<p data-lang="en">Activate digital acquisition and partner-location visibility.</p>
+<div class="checks">
+<div><strong>Landing page</strong> · <span data-lang="pt">versão internacional</span><span data-lang="en">international version</span></div>
+<div><strong>Ads</strong> · <span data-lang="pt">orçamento com RocketMed</span><span data-lang="en">budget with RocketMed</span></div>
+<div><strong>Hostels</strong> · <span data-lang="pt">estandartes + QR</span><span data-lang="en">wall banners + QR</span></div>
+<div><strong>Kite</strong> · <span data-lang="pt">apoios + bandeirões</span><span data-lang="en">partnerships + flags</span></div>
+</div>
+</article>
+</div>
+<div class="q3-side">
+<div class="note">
+<h3 data-lang="pt">Prioridade do Q3</h3>
+<h3 data-lang="en">Q3 priority</h3>
+<p data-lang="pt">Começamos por jurídico, contábil, logística e operação. Depois estruturamos o atendimento. Só então colocamos landing page, ads e sinalização no ar.</p>
+<p data-lang="en">We start with legal, accounting, logistics and operations. Then we structure patient support. Only after that do we launch the landing page, ads and signage.</p>
+</div>
+<div class="result-card">
+<img alt="Continuidade do tratamento durante a estadia" src="/care/assets/bedside.webp"/>
+</div>
+</div>
+</div>
 </section>
-
 <section class="closer">
-  <h2 data-lang="pt">A campanha começa pela operação, não pela mídia.</h2>
-  <h2 data-lang="en">The campaign starts with operations, not media.</h2>
-  <p data-lang="pt">O objetivo do terceiro trimestre é terminar com a Adapta Care pronta para entrar no ar com segurança, clareza e capacidade real de atender.</p>
-  <p data-lang="en">The Q3 goal is to finish with Adapta Care ready to launch safely, clearly and with real operational capacity.</p>
+<h2 data-lang="pt">A campanha começa pela operação, não pela mídia.</h2>
+<h2 data-lang="en">The campaign starts with operations, not media.</h2>
+<p data-lang="pt">O objetivo do terceiro trimestre é terminar com a Adapta Care pronta para entrar no ar com segurança, clareza e capacidade real de atender.</p>
+<p data-lang="en">The Q3 goal is to finish with Adapta Care ready to launch safely, clearly and with real operational capacity.</p>
 </section>
-
 </main>
-
 <script>
 function setLang(lang){
   document.documentElement.setAttribute('data-current-lang',lang);
