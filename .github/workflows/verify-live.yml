@@ -23,10 +23,19 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Wait for Cloudflare build
-        run: sleep 60
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
 
-      - name: Install Playwright
+      - name: Dry-run Worker build
+        run: |
+          mkdir -p live-check
+          set +e
+          npx wrangler deploy --dry-run > live-check/build.txt 2>&1
+          code=$?
+          echo "$code" > live-check/build-exit.txt
+          exit 0
+
+      - name: Install Playwright browser
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
@@ -35,8 +44,9 @@ jobs:
         run: |
           node --input-type=module <<'EOF'
           import { chromium } from 'playwright';
-          import { writeFileSync, mkdirSync } from 'node:fs';
-          mkdirSync('live-check', { recursive: true });
+          import { writeFileSync, readFileSync } from 'node:fs';
+          const buildExit=Number(readFileSync('live-check/build-exit.txt','utf8').trim());
+          const buildOutput=readFileSync('live-check/build.txt','utf8').slice(-12000);
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
           const pageErrors=[];
@@ -46,42 +56,33 @@ jobs:
             const calendarButton = page.locator('[data-page="calendar"]').first();
             if (await calendarButton.count()) {
               await calendarButton.click();
-              await page.waitForTimeout(2500);
+              await page.waitForTimeout(1800);
             }
             const diagnostics = await page.evaluate(() => {
               const now=new Date();
               const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
               const today=document.querySelector('#fullCalendar .adapta-actual-today');
-              const other=document.querySelector('#fullCalendar .adapta-other-month');
-              const todayButton=[...document.querySelectorAll('#fullCalendar button')].find(b=>b.textContent.trim().toLowerCase()==='hoje')||null;
               return {
                 browserNow:now.toString(),
                 todayKey:key,
-                patchStylePresent:!!document.getElementById('calendar-today-ux-v49'),
-                patchRuntimePresent:!!document.getElementById('calendar-today-runtime-v49'),
+                patchStyleV49:!!document.getElementById('calendar-today-ux-v49'),
+                patchRuntimeV49:!!document.getElementById('calendar-today-runtime-v49'),
+                patchStyleV48:!!document.getElementById('calendar-today-ux-v48'),
                 todayFound:!!today,
                 todayDate:today?.getAttribute('data-date')||null,
-                todayNumber:today?.querySelector('[role="link"]')?.textContent?.trim()||null,
                 todayLabel:today?.querySelector('.adapta-today-label')?.textContent?.trim()||null,
-                todayBackground:today?getComputedStyle(today).backgroundColor:null,
-                todayBoxShadow:today?getComputedStyle(today).boxShadow:null,
-                otherMonthFound:!!other,
-                otherMonthDate:other?.getAttribute('data-date')||null,
-                otherMonthOpacity:other?.firstElementChild?getComputedStyle(other.firstElementChild).opacity:null,
-                todayButtonFound:!!todayButton,
-                todayButtonDisabled:todayButton?.disabled??null,
                 currentCellFound:!!document.querySelector(`#fullCalendar [role="gridcell"][data-date="${key}"]`)
               };
             });
-            writeFileSync('live-check/status.json', JSON.stringify({ok:true,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),pageErrors,...diagnostics},null,2));
+            writeFileSync('live-check/status.json', JSON.stringify({ok:true,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),buildExit,buildOutput,pageErrors,...diagnostics},null,2));
             await page.screenshot({path:'live-check/calendar-live.png',fullPage:true});
           } catch(e){
-            writeFileSync('live-check/status.json',JSON.stringify({ok:false,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),pageErrors,error:String(e.stack||e)},null,2));
+            writeFileSync('live-check/status.json',JSON.stringify({ok:false,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),buildExit,buildOutput,pageErrors,error:String(e.stack||e)},null,2));
             await page.screenshot({path:'live-check/calendar-live.png',fullPage:true}).catch(()=>{});
           } finally { await browser.close(); }
           EOF
 
-      - name: Upload live screenshot
+      - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -89,7 +90,7 @@ jobs:
           path: live-check/
           if-no-files-found: warn
 
-      - name: Record live diagnostics
+      - name: Record diagnostics
         if: always()
         run: |
           git config user.name "github-actions[bot]"
