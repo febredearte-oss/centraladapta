@@ -23,8 +23,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Wait for Cloudflare build
-        run: sleep 70
+      - name: Brief wait
+        run: sleep 5
 
       - name: Install Playwright
         run: |
@@ -39,6 +39,8 @@ jobs:
           mkdirSync('live-check', { recursive: true });
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
+          const pageErrors=[];
+          page.on('pageerror', err=>pageErrors.push(String(err?.stack||err)));
           const url = 'https://centraladapta.febredearte.workers.dev';
           let error = null;
           try {
@@ -46,34 +48,48 @@ jobs:
             const calendarButton = page.locator('[data-page="calendar"]').first();
             if (await calendarButton.count()) {
               await calendarButton.click();
-              await page.waitForTimeout(3000);
+              await page.waitForTimeout(2500);
             }
             const diagnostics = await page.evaluate(() => {
-              const today = document.querySelector('#fullCalendar .adapta-actual-today');
-              const todayNumber = today?.querySelector('.fc-daygrid-day-number')?.textContent?.trim() || null;
-              const todayLabel = today?.querySelector('.adapta-today-label')?.textContent?.trim() || null;
+              const now=new Date();
+              const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+              const customToday = document.querySelector('#fullCalendar .adapta-actual-today');
+              const nativeToday = document.querySelector('#fullCalendar .fc-day-today');
+              const customDateCell = document.querySelector(`#fullCalendar [data-calendar-date="${key}"]`);
+              const nativeDateCell = document.querySelector(`#fullCalendar [data-date="${key}"]`);
+              const calendarDateValues=[...document.querySelectorAll('#fullCalendar [data-calendar-date]')].slice(0,60).map(el=>el.getAttribute('data-calendar-date'));
+              const nativeDateValues=[...document.querySelectorAll('#fullCalendar [data-date]')].slice(0,60).map(el=>el.getAttribute('data-date'));
               const other = document.querySelector('#fullCalendar .fc-day-other');
               const otherFrame = other?.querySelector('.fc-daygrid-day-frame');
               return {
+                browserNow: now.toString(),
+                todayKey:key,
                 title: document.title,
                 href: location.href,
                 pageCalendarActive: document.querySelector('#page-calendar')?.classList.contains('active') || false,
-                todayCellFound: !!today,
-                todayNumber,
-                todayLabel,
-                todayBackground: today ? getComputedStyle(today).backgroundColor : null,
-                todayBoxShadow: today ? getComputedStyle(today).boxShadow : null,
+                customTodayFound: !!customToday,
+                nativeTodayFound: !!nativeToday,
+                customDateCellFound: !!customDateCell,
+                nativeDateCellFound: !!nativeDateCell,
+                customDateCellOuter: customDateCell?.outerHTML?.slice(0,1400)||null,
+                nativeDateCellOuter: nativeDateCell?.outerHTML?.slice(0,1400)||null,
+                calendarDateCount: document.querySelectorAll('#fullCalendar [data-calendar-date]').length,
+                nativeDateCount: document.querySelectorAll('#fullCalendar [data-date]').length,
+                calendarDateValues,
+                nativeDateValues,
+                todayNumber: customToday?.querySelector('.fc-daygrid-day-number')?.textContent?.trim() || nativeToday?.querySelector('.fc-daygrid-day-number')?.textContent?.trim() || null,
+                todayLabel: customToday?.querySelector('.adapta-today-label')?.textContent?.trim() || null,
                 otherDayOpacity: otherFrame ? getComputedStyle(otherFrame).opacity : null,
                 patchStylePresent: !!document.getElementById('calendar-today-ux-v47'),
                 patchRuntimePresent: !!document.getElementById('calendar-today-runtime-v47'),
-                calendarText: document.querySelector('#page-calendar')?.innerText?.slice(0, 1200) || ''
+                runtimeScriptText: document.getElementById('calendar-today-runtime-v47')?.textContent?.slice(0,2200)||null
               };
             });
-            writeFileSync('live-check/status.json', JSON.stringify({ ok: true, runId: process.env.GITHUB_RUN_ID, checkedAt: new Date().toISOString(), ...diagnostics }, null, 2));
+            writeFileSync('live-check/status.json', JSON.stringify({ ok: true, runId: process.env.GITHUB_RUN_ID, checkedAt: new Date().toISOString(), pageErrors, ...diagnostics }, null, 2));
             await page.screenshot({ path: 'live-check/calendar-live.png', fullPage: true });
           } catch (e) {
             error = String(e?.stack || e);
-            writeFileSync('live-check/status.json', JSON.stringify({ ok: false, runId: process.env.GITHUB_RUN_ID, checkedAt: new Date().toISOString(), error }, null, 2));
+            writeFileSync('live-check/status.json', JSON.stringify({ ok: false, runId: process.env.GITHUB_RUN_ID, checkedAt: new Date().toISOString(), pageErrors, error }, null, 2));
             await page.screenshot({ path: 'live-check/calendar-live.png', fullPage: true }).catch(() => {});
           } finally {
             await browser.close();
