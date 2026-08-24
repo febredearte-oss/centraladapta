@@ -1,0 +1,140 @@
+320px,1fr) minmax(320px,1fr);gap:20px;align-items:start;}.progress{overflow-x:auto;display:flex;scrollbar-width:none}.progress::-webkit-scrollbar{display:none}.progress button{min-width:max-content;margin-right:18px}}@media(max-width:720px){.shell{width:calc(100% - 18px);padding-top:14px}.masthead{position:relative;padding-top:36px;gap:10px}.brand-lockup{grid-template-columns:44px minmax(0,1fr);gap:11px}.brand-logo{width:44px}.masthead h1{font-size:clamp(28px,9.8vw,42px);line-height:.97}.masthead p{font-size:10.5px}.mast-actions{position:absolute;right:0;top:0}.counter{font-size:15px}.page,.page[data-step="0"],.page[data-step="1"],.page[data-step="2"],.page[data-step="3"],.page[data-step="4"],.page[data-step="5"]{display:flex;flex-direction:column;gap:0;}.media{height:345px;min-height:345px;margin-bottom:18px}.story{padding:0 1px 4px}.story h2{font-size:clamp(40px,14vw,60px)}.lead{font-size:13px}.key{font-size:15px}.fact{grid-template-columns:95px minmax(0,1fr);gap:13px}.fact dd{font-size:10.5px}.mindmap{grid-template-columns:1fr 1fr}.family{grid-template-columns:1fr}.family-head{grid-template-columns:1fr;gap:4px}.compare-row .name{font-size:21px}}</style></head><body><div class="shell"><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="/brand/adapta-logo-board-trim.png" alt="Adapta"><div class="brand-copy"><div class="overline" id="headerOverline">Guia visual · solventless</div><h1 id="headerTitle">Um guia pra entender melhor o universo das extrações</h1><p id="headerIntro">Do Dry Sift ao Live Hash Rosin, um panorama visual das principais extrações sem solventes, de onde vêm e o que muda entre elas.</p></div></div><div class="mast-actions"><div class="lang-switch" aria-label="Idioma / Language"><button id="langPT" class="active" type="button" aria-pressed="true">PT</button><button id="langEN" type="button" aria-pressed="false">EN</button></div><div class="counter"><small id="counterLabel">etapa</small><span id="counter">01 / 07</span></div></div></header><nav class="progress" id="progress"><button class="active" data-step="0"><span class="num">01</span><span class="label">Dry Sift Hash</span></button><button data-step="1"><span class="num">02</span><span class="label">Ice Water Hash</span></button><button data-step="2"><span class="num">03</span><span class="label">Flower Rosin</span></button><button data-step="3"><span class="num">04</span><span class="label">Hash Rosin</span></button><button data-step="4"><span class="num">05</span><span class="label">Live Hash</span></button><button data-step="5"><span class="num">06</span><span class="label">Live Hash Rosin</span></button><button data-step="6"><span class="num">07</span><span class="label">Comparação</span></button></nav><main class="stage"><article class="page" id="page"><div class="media" id="media"><img id="stageImage" alt=""></div><section class="story" id="story"><div class="kicker" id="kicker">01 · separação a seco</div><h2 id="title">Dry Sift Hash</h2><p class="lead" id="lead">O <strong>hash, ou haxixe</strong>, é um concentrado feito a partir da resina da cannabis. Essa resina se concentra principalmente nos <strong>tricomas</strong>, pequenas estruturas que recobrem a flor.</p><dl class="facts" id="facts"><div class="fact"><dt>Como é obtido</dt><dd>No Dry Sift, flor seca e curada passa por telas. Os tricomas que se desprendem são coletados.</dd></div><div class="fact"><dt>Kief</dt><dd>O material solto, rico em tricomas, coletado nessa separação é chamado <strong>kief</strong>.</dd></div><div class="fact"><dt>Micragem</dt><dd>As telas têm aberturas medidas em <strong>microns (µm)</strong>. Micragens diferentes deixam passar partículas de tamanhos diferentes.</dd></div><div class="fact"><dt>O resultado</dt><dd>A fração rica em tricomas separada a seco dá origem ao <strong>Dry Sift Hash</strong>.</dd></div></dl><div class="key" id="key"><strong>Flor → tricomas → resina separada → Hash.</strong></div></section><section class="final-page" id="finalPage"><div class="final-top"><div class="kicker" id="finalKicker">07 · comparação</div><h2 id="finalTitle">Como os nomes se formam.</h2><p class="lead" id="finalLead">Comece pela matéria-prima. Depois veja como os tricomas foram separados. Se o Hash for prensado, ele vira Rosin.</p><div class="final-rules" id="finalReadingList"></div></div><div class="flow-map" id="families"></div><div class="final-warning" id="finalKey"></div><div id="finalReadingTitle" hidden></div><div id="finalSummary" hidden></div></section></article><aside class="rail"><div id="mentalMap" class="mental-map-card"><div class="rail-kicker" id="mapKicker">índice das extrações</div><h3 id="mapTitle">Onde se encaixa</h3><p id="mapIntro">Hash obtido por separação a seco.</p><div class="mindmap" id="mindmap"></div></div></aside></main><div class="controls"><button class="ctrl" id="prev">← anterior</button><div class="instruction" id="instruction">Próximo: Ice Water Hash →</div><button class="ctrl" id="next">próxima →</button></div></div><script>
+const images = {
+    dry:`/guiadehash/assets/1.webp`,
+  ice:`/guiadehash/assets/2.webp`,
+  rosin:`/guiadehash/assets/3.webp`,
+  live:`/guiadehash/assets/4.webp`,
+  rosinHash:`/guiadehash/assets/5.webp`,
+  rosinLive:`/guiadehash/assets/6.webp`
+};
+
+const steps = [
+{
+  nav:"Dry Sift Hash",
+  kicker:"01 · separação a seco",
+  title:"Dry Sift Hash",
+  image:images.dry,
+  lead:`O <strong>hash, ou haxixe</strong>, é um concentrado feito a partir da resina da cannabis. Essa resina se concentra principalmente nos <strong>tricomas</strong>, pequenas estruturas que recobrem a flor.`,
+  facts:[
+    ["Como é obtido","No Dry Sift, flor seca e curada passa por telas. Os tricomas que se desprendem são coletados."],
+    ["Kief","O material solto, rico em tricomas, coletado nessa separação é chamado <strong>kief</strong>."],
+    ["Micragem","As telas têm aberturas medidas em <strong>microns (µm)</strong>. Micragens diferentes deixam passar partículas de tamanhos diferentes."],
+    ["O resultado","A fração rica em tricomas separada a seco dá origem ao <strong>Dry Sift Hash</strong>."]
+  ],
+  key:`<strong>Flor → tricomas → resina separada → Hash.</strong>`
+},
+{
+  nav:"Ice Water Hash",
+  kicker:"02 · separação em água fria",
+  title:"Ice Water Hash",
+  image:images.ice,
+  lead:`No <strong>Ice Water Hash</strong>, os tricomas são separados em água muito fria, em vez de uma separação a seco.`,
+  facts:[
+    ["Como é obtido","O frio ajuda os tricomas a se desprenderem da planta. Depois, a água passa por telas de diferentes micragens."],
+    ["Outros nomes","Também pode aparecer como <strong>Bubble Hash</strong> ou <strong>Ice-O-Lator</strong>."],
+    ["Na separação","A filtragem em água pode oferecer maior controle sobre as frações coletadas e reduzir a presença de matéria vegetal."],
+    ["Em relação ao Dry Sift","Dry Sift Hash = separação a seco. Ice Water Hash = separação em água muito fria."]
+  ],
+  key:`<strong>A diferença está na separação dos tricomas: a seco ou em água fria.</strong>`
+},
+{
+  nav:"Flower Rosin",
+  kicker:"03 · prensagem da flor",
+  title:"Flower Rosin",
+  image:images.rosin,
+  lead:`<strong>Rosin</strong> é um concentrado obtido pela aplicação controlada de calor e pressão. No <strong>Flower Rosin</strong>, a própria flor é prensada.`,
+  facts:[
+    ["Matéria-prima","Flor de cannabis."],
+    ["O caminho","flor → calor + pressão → Flower Rosin"],
+    ["Em relação ao Hash","Não há uma etapa anterior de separação dos tricomas para formar Hash."],
+    ["O nome","<strong>Flower</strong> indica a matéria-prima. <strong>Rosin</strong> indica o concentrado obtido pela prensagem."]
+  ],
+  key:`<strong>Flower Rosin = Rosin feito diretamente da flor.</strong>`
+},
+{
+  nav:"Hash Rosin",
+  kicker:"04 · prensagem do hash",
+  title:"Hash Rosin",
+  image:images.rosinHash,
+  lead:`<strong>Hash Rosin</strong> é Rosin feito a partir de Hash previamente separado, e não diretamente da flor inteira.`,
+  facts:[
+    ["O caminho","flor → Hash → calor + pressão → Hash Rosin"],
+    ["Matéria-prima","Um Hash rico em tricomas entra na prensagem."],
+    ["O que muda","Essa matéria-prima já contém menos matéria vegetal do que a flor inteira e é mais concentrada em resina."],
+    ["Em relação ao Flower Rosin","Flower Rosin começa na flor. Hash Rosin começa no Hash."]
+  ],
+  key:`<strong>Hash Rosin = Hash prensado para formar Rosin.</strong>`
+},
+{
+  nav:"Live Hash",
+  kicker:"05 · origem Fresh Frozen",
+  title:"Live Hash",
+  image:images.live,
+  lead:`<strong>Live Hash</strong> parte de <strong>Fresh Frozen</strong>: flor congelada ainda fresca, antes da secagem e cura.`,
+  facts:[
+    ["O caminho","Fresh Frozen → água muito fria → separação dos tricomas → Live Hash"],
+    ["O que significa Live","<strong>Live</strong> indica a origem Fresh Frozen."],
+    ["A separação","Pertence à mesma família do Ice Water Hash."],
+    ["Em relação ao Ice Water Hash","Ice Water Hash pode partir de material seco. Live Hash parte de material fresco congelado."]
+  ],
+  key:`<strong>Live = origem Fresh Frozen.</strong>`
+},
+{
+  nav:"Live Hash Rosin",
+  kicker:"06 · Live Hash prensado",
+  title:"Live Hash Rosin",
+  image:images.rosinLive,
+  lead:`<strong>Live Hash Rosin</strong> é Rosin feito a partir de Live Hash. O próprio nome descreve a origem e as etapas anteriores.`,
+  facts:[
+    ["Live","A matéria-prima original é Fresh Frozen."],
+    ["Hash","Os tricomas são separados para formar Live Hash."],
+    ["Rosin","O Live Hash é então prensado."],
+    ["O caminho","Fresh Frozen → Live Hash → calor + pressão → Live Hash Rosin"]
+  ],
+  key:`<strong>Live + Hash + Rosin = origem Fresh Frozen + Hash + prensagem.</strong>`
+},
+{
+  nav:"Comparação",
+  kicker:"07 · diferenças na prática",
+  title:"O que muda entre eles?",
+  image:null,
+  lead:`A comparação passa por aroma, pureza física, concentração, presença de matéria vegetal, qualidade e experiência sensorial.`,
+  facts:[],
+  key:`O método de extração não determina sozinho qualidade, potência ou efeito terapêutico.`
+}
+];
+
+
+const compareGroups = [
+  {
+    raw:"flor seca e curada",
+    rawNote:"matéria-prima seca",
+    separation:"separação a seco",
+    separationNote:"os tricomas são peneirados",
+    hash:"Dry Sift Hash",
+    hashNote:"Hash feito sem água",
+    rosin:"Hash Rosin",
+    rosinNote:"se esse Hash for prensado"
+  },
+  {
+    raw:"material vegetal",
+    rawNote:"pode estar seco ou em outro estado",
+    separation:"água muito fria",
+    separationNote:"os tricomas se soltam e são filtrados",
+    hash:"Ice Water Hash",
+    hashNote:"Hash separado em água fria",
+    rosin:"Hash Rosin",
+    rosinNote:"se esse Hash for prensado"
+  },
+  {
+    raw:"Fresh Frozen",
+    rawNote:"flor congelada ainda fresca",
+    separation:"água muito fria",
+    separationNote:"mesma lógica do Ice Water",
+    hash:"Live Hash",
+    hashNote:"o 'Live' vem da origem Fresh Frozen",
+    rosin:"Live Hash Rosin",
+    rosinNote:"Live Hash que depois foi prensado"
+  },
+  {
+    raw:"flor"

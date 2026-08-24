@@ -1,0 +1,212 @@
+,
+    rawNote:"a própria flor entra no processo",
+    separation:"sem etapa de Hash",
+    separationNote:"não há separação prévia dos tricomas",
+    hash:"—",
+    hashNote:"não passa por Hash",
+    rosin:"Flower Rosin",
+    rosinNote:"a flor vai direto para a prensagem",
+    direct:true
+  }
+];
+
+let current = 0;
+
+const els = {
+  page:document.getElementById("page"),
+  media:document.getElementById("media"),
+  image:document.getElementById("stageImage"),
+  story:document.getElementById("story"),
+  kicker:document.getElementById("kicker"),
+  title:document.getElementById("title"),
+  lead:document.getElementById("lead"),
+  facts:document.getElementById("facts"),
+  key:document.getElementById("key"),
+  progress:document.getElementById("progress"),
+  counter:document.getElementById("counter"),
+  prev:document.getElementById("prev"),
+  next:document.getElementById("next"),
+  instruction:document.getElementById("instruction"),
+  finalPage:document.getElementById("finalPage"),
+  families:document.getElementById("families"),
+  mindmap:document.getElementById("mindmap"),
+  mapTitle:document.getElementById("mapTitle"),
+  mapIntro:document.getElementById("mapIntro"),
+  headerOverline:document.getElementById("headerOverline"),
+  headerTitle:document.getElementById("headerTitle"),
+  headerIntro:document.getElementById("headerIntro"),
+  counterLabel:document.getElementById("counterLabel"),
+  mapKicker:document.getElementById("mapKicker"),
+  finalKicker:document.getElementById("finalKicker"),
+  finalTitle:document.getElementById("finalTitle"),
+  finalLead:document.getElementById("finalLead"),
+  finalKey:document.getElementById("finalKey"),
+  finalReadingTitle:document.getElementById("finalReadingTitle"),
+  finalReadingList:document.getElementById("finalReadingList"),
+  finalSummary:document.getElementById("finalSummary"),
+  langPT:document.getElementById("langPT"),
+  langEN:document.getElementById("langEN")
+};
+
+const mapStructure = [
+  {id:"hash",title:"Hash",caption:"Concentrados obtidos ao separar os tricomas.",nodes:[
+    {id:"dry-hash",label:"Dry Sift Hash",meta:"Hash por separação a seco",level:0},
+    {id:"ice-hash",label:"Ice Water Hash",meta:"Hash separado em água fria",level:0},
+    {id:"live-hash",label:"Live Hash",meta:"Hash com origem Fresh Frozen",level:1}
+  ]},
+  {id:"rosin",title:"Rosin",caption:"Concentrados obtidos por calor e pressão.",nodes:[
+    {id:"flower-rosin",label:"Flower Rosin",meta:"Rosin feito diretamente da flor",level:0},
+    {id:"hash-rosin",label:"Hash Rosin",meta:"Rosin feito a partir de Hash",level:0},
+    {id:"live-hash-rosin",label:"Live Hash Rosin",meta:"Rosin feito a partir de Live Hash",level:1}
+  ]}
+];
+
+const stepMap = {
+  0:{current:["dry-hash"],currentGroup:"hash",sourceGroup:null,title:"Mapa das famílias",intro:"Hash e Rosin organizados por família."},
+  1:{current:["ice-hash"],currentGroup:"hash",sourceGroup:null,title:"Mapa das famílias",intro:"Hash e Rosin organizados por família."},
+  2:{current:["flower-rosin"],currentGroup:"rosin",sourceGroup:null,title:"Mapa das famílias",intro:"Hash e Rosin organizados por família."},
+  3:{current:["hash-rosin"],currentGroup:"rosin",sourceGroup:"hash",title:"Mapa das famílias",intro:"Hash → Hash Rosin"},
+  4:{current:["live-hash"],currentGroup:"hash",sourceGroup:null,title:"Mapa das famílias",intro:"Live = origem Fresh Frozen."},
+  5:{current:["live-hash-rosin"],currentGroup:"rosin",sourceGroup:"hash",title:"Mapa das famílias",intro:"Live Hash → Live Hash Rosin"},
+  6:{current:["dry-hash","ice-hash","live-hash","flower-rosin","hash-rosin","live-hash-rosin"],currentGroup:null,sourceGroup:null,title:"Mapa das famílias",intro:"Hash de um lado. Rosin do outro."}
+};
+
+
+
+const stepsEN = [
+{
+  nav:"Dry Sift Hash", kicker:"01 · dry separation", title:"Dry Sift Hash", image:images.dry,
+  lead:`<strong>Hash</strong> is a concentrate made from cannabis resin. This resin is concentrated mainly in <strong>trichomes</strong>, small structures that cover the flower.`,
+  facts:[
+    ["How it is obtained","In Dry Sift, dried and cured flower passes over screens. The trichomes that detach are collected."],
+    ["Kief","The loose, trichome-rich material collected during separation is called <strong>kief</strong>."],
+    ["Micron size","The screens have openings measured in <strong>microns (µm)</strong>. Different micron sizes allow particles of different sizes to pass."],
+    ["The result","The trichome-rich fraction separated dry becomes <strong>Dry Sift Hash</strong>."]
+  ],
+  key:`<strong>Flower → trichomes → separated resin → Hash.</strong>`
+},
+{
+  nav:"Ice Water Hash", kicker:"02 · cold-water separation", title:"Ice Water Hash", image:images.ice,
+  lead:`In <strong>Ice Water Hash</strong>, trichomes are separated in very cold water rather than through dry separation.`,
+  facts:[
+    ["How it is obtained","The cold helps trichomes detach from the plant. The water then passes through screens with different micron sizes."],
+    ["Other names","It may also appear as <strong>Bubble Hash</strong> or <strong>Ice-O-Lator</strong>."],
+    ["During separation","Water filtration can provide greater control over collected fractions and reduce the presence of plant material."],
+    ["Compared with Dry Sift","Dry Sift Hash = dry separation. Ice Water Hash = separation in very cold water."]
+  ],
+  key:`<strong>The difference is how the trichomes are separated: dry or in cold water.</strong>`
+},
+{
+  nav:"Flower Rosin", kicker:"03 · flower pressing", title:"Flower Rosin", image:images.rosin,
+  lead:`<strong>Rosin</strong> is a concentrate obtained through controlled heat and pressure. In <strong>Flower Rosin</strong>, the flower itself is pressed.`,
+  facts:[
+    ["Raw material","Cannabis flower."],
+    ["The path","flower → heat + pressure → Flower Rosin"],
+    ["Compared with Hash","There is no prior step separating trichomes to form Hash."],
+    ["The name","<strong>Flower</strong> identifies the raw material. <strong>Rosin</strong> identifies the concentrate obtained by pressing."]
+  ],
+  key:`<strong>Flower Rosin = Rosin made directly from flower.</strong>`
+},
+{
+  nav:"Hash Rosin", kicker:"04 · Hash pressing", title:"Hash Rosin", image:images.rosinHash,
+  lead:`<strong>Hash Rosin</strong> is Rosin made from previously separated Hash rather than directly from whole flower.`,
+  facts:[
+    ["The path","flower → Hash → heat + pressure → Hash Rosin"],
+    ["Raw material","A trichome-rich Hash enters the pressing step."],
+    ["What changes","The starting material contains less plant matter than whole flower and is more concentrated in resin."],
+    ["Compared with Flower Rosin","Flower Rosin starts with flower. Hash Rosin starts with Hash."]
+  ],
+  key:`<strong>Hash Rosin = Hash pressed into Rosin.</strong>`
+},
+{
+  nav:"Live Hash", kicker:"05 · Fresh Frozen origin", title:"Live Hash", image:images.live,
+  lead:`<strong>Live Hash</strong> starts with <strong>Fresh Frozen</strong>: flower frozen while still fresh, before drying and curing.`,
+  facts:[
+    ["The path","Fresh Frozen → very cold water → trichome separation → Live Hash"],
+    ["What Live means","<strong>Live</strong> indicates a Fresh Frozen origin."],
+    ["The separation","It belongs to the same family as Ice Water Hash."],
+    ["Compared with Ice Water Hash","Ice Water Hash may start with dried material. Live Hash starts with fresh-frozen material."]
+  ],
+  key:`<strong>Live = Fresh Frozen origin.</strong>`
+},
+{
+  nav:"Live Hash Rosin", kicker:"06 · pressed Live Hash", title:"Live Hash Rosin", image:images.rosinLive,
+  lead:`<strong>Live Hash Rosin</strong> is Rosin made from Live Hash. The name describes both the origin and the previous stages.`,
+  facts:[
+    ["Live","The original material is Fresh Frozen."],
+    ["Hash","The trichomes are separated to form Live Hash."],
+    ["Rosin","The Live Hash is then pressed."],
+    ["The path","Fresh Frozen → Live Hash → heat + pressure → Live Hash Rosin"]
+  ],
+  key:`<strong>Live + Hash + Rosin = Fresh Frozen origin + Hash + pressing.</strong>`
+},
+{
+  nav:"Comparison", kicker:"07 · practical differences", title:"What changes between them?", image:null,
+  lead:`The comparison includes aroma, physical purity, concentration, presence of plant material, quality and sensory experience.`,
+  facts:[], key:`The extraction method alone does not determine quality, potency or therapeutic effect.`
+}
+];
+
+const compareGroupsEN = [
+  {
+    raw:"dried and cured flower",
+    rawNote:"dried starting material",
+    separation:"dry separation",
+    separationNote:"the trichomes are sifted",
+    hash:"Dry Sift Hash",
+    hashNote:"Hash made without water",
+    rosin:"Hash Rosin",
+    rosinNote:"if that Hash is then pressed"
+  },
+  {
+    raw:"plant material",
+    rawNote:"it may be dried or in another state",
+    separation:"very cold water",
+    separationNote:"trichomes detach and are filtered",
+    hash:"Ice Water Hash",
+    hashNote:"Hash separated in cold water",
+    rosin:"Hash Rosin",
+    rosinNote:"if that Hash is then pressed"
+  },
+  {
+    raw:"Fresh Frozen",
+    rawNote:"flower frozen while still fresh",
+    separation:"very cold water",
+    separationNote:"the same basic logic as Ice Water",
+    hash:"Live Hash",
+    hashNote:"'Live' comes from the Fresh Frozen origin",
+    rosin:"Live Hash Rosin",
+    rosinNote:"Live Hash that is then pressed"
+  },
+  {
+    raw:"flower",
+    rawNote:"the flower itself enters the process",
+    separation:"no Hash stage",
+    separationNote:"there is no prior trichome separation",
+    hash:"—",
+    hashNote:"it does not pass through Hash",
+    rosin:"Flower Rosin",
+    rosinNote:"the flower goes directly to pressing",
+    direct:true
+  }
+];
+
+const mapStructureEN = [
+  {id:"hash",title:"Hash",caption:"Concentrates obtained by separating trichomes.",nodes:[
+    {id:"dry-hash",label:"Dry Sift Hash",meta:"Hash from dry separation",level:0},
+    {id:"ice-hash",label:"Ice Water Hash",meta:"Hash separated in cold water",level:0},
+    {id:"live-hash",label:"Live Hash",meta:"Hash with a Fresh Frozen origin",level:1}
+  ]},
+  {id:"rosin",title:"Rosin",caption:"Concentrates obtained through heat and pressure.",nodes:[
+    {id:"flower-rosin",label:"Flower Rosin",meta:"Rosin made directly from flower",level:0},
+    {id:"hash-rosin",label:"Hash Rosin",meta:"Rosin made from Hash",level:0},
+    {id:"live-hash-rosin",label:"Live Hash Rosin",meta:"Rosin made from Live Hash",level:1}
+  ]}
+];
+
+const stepMapEN = {
+  0:{current:["dry-hash"],currentGroup:"hash",sourceGroup:null,title:"Family map",intro:"Hash and Rosin organized by family."},
+  1:{current:["ice-hash"],currentGroup:"hash",sourceGroup:null,title:"Family map",intro:"Hash and Rosin organized by family."},
+  2:{current:["flower-rosin"],currentGroup:"rosin",sourceGroup:null,title:"Family map",intro:"Hash and Rosin organized by family."},
+  3:{current:["hash-rosin"],currentGroup:"rosin",sourceGroup:"hash",title:"Family map",intro:"Hash → Hash Rosin"},
+  4:{current:["live-hash"],currentGrou

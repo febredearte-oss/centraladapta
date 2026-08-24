@@ -1,0 +1,201 @@
+p:"hash",sourceGroup:null,title:"Family map",intro:"Live = Fresh Frozen origin."},
+  5:{current:["live-hash-rosin"],currentGroup:"rosin",sourceGroup:"hash",title:"Family map",intro:"Live Hash → Live Hash Rosin"},
+  6:{current:["dry-hash","ice-hash","live-hash","flower-rosin","hash-rosin","live-hash-rosin"],currentGroup:null,sourceGroup:null,title:"Family map",intro:"Hash on one side. Rosin on the other."}
+};
+
+const uiText = {
+  pt:{
+    lang:"pt-BR", title:"Adapta — Um guia pra entender melhor o universo das extrações",
+    desc:"Um guia da Adapta pra entender melhor o universo das extrações: Dry Sift, Ice Water Hash, Rosin, Live Hash e Live Hash Rosin.",
+    overline:"Guia visual · solventless", header:"Um guia pra entender melhor o universo das extrações",
+    intro:"Do Dry Sift ao Live Hash Rosin, um panorama visual das principais extrações sem solventes, de onde vêm e o que muda entre elas.",
+    counter:"etapa", mapKicker:"índice das extrações", prev:"← anterior", next:"próxima →",
+    instruction:"", instructionFinal:"Fim do guia.",
+    finalKicker:"07 · comparação", finalTitle:"Como os nomes se formam.",
+    finalLead:'Comece pela matéria-prima. Depois veja como os tricomas foram separados. Se o Hash for prensado, ele vira Rosin.',
+    finalKey:'<strong>Importante:</strong> este mapa mostra como os nomes se relacionam. Ele não é uma escala de qualidade, potência ou efeito terapêutico.'     
+  },
+  en:{
+    lang:"en", title:"Adapta — A guide to better understand the world of extractions",
+    desc:"An Adapta guide to better understand the world of extractions: Dry Sift, Ice Water Hash, Rosin, Live Hash and Live Hash Rosin.",
+    overline:"Visual guide · solventless", header:"A guide to better understand the world of extractions",
+    intro:"From Dry Sift to Live Hash Rosin, a visual overview of the main solventless extractions, where they come from and what changes between them.",
+    counter:"step", mapKicker:"extraction index", prev:"← previous", next:"next →",
+    instruction:"", instructionFinal:"End of guide.",
+    finalKicker:"07 · comparison", finalTitle:"How the names are formed.",
+    finalLead:'Start with the material. Then see how the trichomes were separated. If the Hash is pressed, it becomes Rosin.',
+    finalKey:'<strong>Important:</strong> this map shows how the names relate to one another. It is not a scale of quality, potency, or therapeutic effect.'   
+  }
+};
+
+const ptSnapshot = {
+  steps: JSON.parse(JSON.stringify(steps)),
+  compare: JSON.parse(JSON.stringify(compareGroups)),
+  mapStructure: JSON.parse(JSON.stringify(mapStructure)),
+  stepMap: JSON.parse(JSON.stringify(stepMap))
+};
+let language = "pt";
+
+function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
+function replaceArray(target, source){
+  target.splice(0,target.length,...deepCopy(source));
+}
+function replaceObject(target, source){
+  Object.keys(target).forEach(k=>delete target[k]);
+  Object.assign(target,deepCopy(source));
+}
+function renderMindMap(step){
+  const cfg = stepMap[step];
+  els.mapTitle.textContent = cfg.title;
+  els.mapIntro.textContent = cfg.intro;
+  els.mindmap.innerHTML = mapStructure.map(group => {
+    const groupClass = group.id===cfg.currentGroup ? "current-group" : (group.id===cfg.sourceGroup ? "source-group" : "");
+    return `
+      <div class="mm-group ${groupClass}"><div class="mm-group-title">${group.title}</div>
+        ${group.nodes.map(node => {
+          const sameGroup = group.id===cfg.currentGroup || group.id===cfg.sourceGroup;
+          const cls = cfg.current.includes(node.id) ? "current" : (sameGroup ? "related" : "future");
+          return `
+            <div class="mm-node ${cls}" data-level="${node.level || 0}"><span class="node-label">${node.label}</span><span class="node-meta">${node.meta}</span></div>`;
+        }).join("")}
+      </div>`;
+  }).join("");
+}
+
+function setLanguage(nextLanguage){
+  language = nextLanguage;
+  if(language==="pt"){
+    replaceArray(steps,ptSnapshot.steps);
+    replaceArray(compareGroups,ptSnapshot.compare);
+    replaceArray(mapStructure,ptSnapshot.mapStructure);
+    replaceObject(stepMap,ptSnapshot.stepMap);
+  }else{
+    replaceArray(steps,stepsEN);
+    replaceArray(compareGroups,compareGroupsEN);
+    replaceArray(mapStructure,mapStructureEN);
+    replaceObject(stepMap,stepMapEN);
+  }
+
+  const t=uiText[language];
+  document.documentElement.lang=t.lang;
+  document.title=t.title;
+  const meta=document.querySelector('meta[name="description"]');
+  if(meta) meta.setAttribute("content",t.desc);
+
+  els.headerOverline.textContent=t.overline;
+  els.headerTitle.textContent=t.header;
+  els.headerIntro.textContent=t.intro;
+  els.counterLabel.textContent=t.counter;
+  els.mapKicker.textContent=t.mapKicker;
+  els.prev.textContent=t.prev;
+  els.next.textContent=t.next;
+  els.finalKicker.textContent=t.finalKicker;
+  els.finalTitle.textContent=t.finalTitle;
+  els.finalLead.innerHTML=t.finalLead;
+  els.finalKey.innerHTML=t.finalKey;
+
+  els.langPT.classList.toggle("active",language==="pt");
+  els.langEN.classList.toggle("active",language==="en");
+  els.langPT.setAttribute("aria-pressed",language==="pt"?"true":"false");
+  els.langEN.setAttribute("aria-pressed",language==="en"?"true":"false");
+
+  buildProgress();
+  renderFamilies();
+  render();
+}
+
+function buildProgress(){
+  els.progress.innerHTML = steps.map((s,i)=>`
+    <button data-step="${i}"><span class="num">${String(i+1).padStart(2,"0")}</span><span class="label">${s.nav}</span></button>`).join("");
+  els.progress.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    current=Number(b.dataset.step); render();
+  }));
+}
+
+function renderFamilies(){
+  const t = language==="pt"
+    ? {
+        rules:[
+          ["Hash","tricomas foram separados"],
+          ["Rosin","houve prensagem"],
+          ["Live","a origem é Fresh Frozen"]
+        ],
+        columns:["Matéria-prima","Separação","Hash","Se prensado → Rosin"],
+        raw:"origem",
+        separation:"o que acontece",
+        hash:"resultado",
+        rosin:"depois da prensagem"
+      }
+    : {
+        rules:[
+          ["Hash","trichomes were separated"],
+          ["Rosin","pressing took place"],
+          ["Live","the origin is Fresh Frozen"]
+        ],
+        columns:["Starting material","Separation","Hash","If pressed → Rosin"],
+        raw:"origin",
+        separation:"what happens",
+        hash:"result",
+        rosin:"after pressing"
+      };
+
+  els.finalReadingList.innerHTML = t.rules.map(([name,meaning])=>`
+    <div class="rule-chip"><strong>${name}</strong><span>${meaning}</span></div>
+  `).join("");
+
+  els.families.innerHTML = `
+    <div class="flow-head">
+      ${t.columns.map(col=>`<div>${col}</div>`).join("")}
+    </div>
+
+    ${compareGroups.map(row=>`
+      <div class="flow-row ${row.direct ? "direct" : ""}"><div class="flow-cell"><div class="flow-label">${t.raw}</div><div class="flow-name small">${row.raw}</div><div class="flow-copy">${row.rawNote}</div></div><div class="flow-cell"><div class="flow-label">${t.separation}</div><div class="flow-name small">${row.separation}</div><div class="flow-copy">${row.separationNote}</div></div><div class="flow-cell"><div class="flow-label">${t.hash}</div><div class="${row.hash==="—" ? "flow-empty" : "flow-name"}">${row.hash}</div><div class="flow-copy">${row.hashNote}</div></div><div class="flow-cell"><div class="flow-label">${t.rosin}</div><div class="flow-name">${row.rosin}</div><div class="flow-copy">${row.rosinNote}</div></div></div>
+    `).join("")}
+  `;
+}
+
+function render(){
+  const s=steps[current];
+  els.page.dataset.step=String(current);
+  els.counter.textContent=`${String(current+1).padStart(2,"0")} / ${String(steps.length).padStart(2,"0")}`;
+  els.progress.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("active",i===current));
+  els.prev.disabled=current===0;
+  els.next.disabled=current===steps.length-1;
+  els.instruction.textContent=current===steps.length-1
+    ? uiText[language].instructionFinal
+    : (language==="pt" ? `Próximo: ${steps[current+1].nav} →` : `Next: ${steps[current+1].nav} →`);
+
+  const isFinal=current===steps.length-1;
+  els.page.classList.toggle("final",isFinal);
+  const stageEl=document.querySelector(".stage");
+  if(stageEl) stageEl.classList.toggle("final-stage",isFinal);
+  if(isFinal){ renderFamilies(); }
+  els.finalPage.style.display=isFinal?"grid":"none";
+  els.media.style.display=isFinal?"none":"block";
+  els.story.style.display=isFinal?"none":"flex";
+
+  if(!isFinal) renderMindMap(current);
+
+  if(isFinal) return;
+
+  els.kicker.textContent=s.kicker;
+  els.title.textContent=s.title;
+  els.lead.innerHTML=s.lead;
+  els.facts.innerHTML=s.facts.map(([a,b])=>`<div class="fact"><dt>${a}</dt><dd>${b}</dd></div>`).join("");
+  els.key.innerHTML=s.key;
+
+  els.image.style.display="block";
+  els.image.src=s.image;
+  els.image.alt=s.title;
+
+}
+
+
+
+els.prev.addEventListener("click",()=>{if(current>0){current--;render()}});
+els.next.addEventListener("click",()=>{if(current<steps.length-1){current++;render()}});
+els.langPT.addEventListener("click",()=>setLanguage("pt"));
+els.langEN.addEventListener("click",()=>setLanguage("en"));
+
+setLanguage("pt");
+</script></body></html>
