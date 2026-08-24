@@ -23,63 +23,72 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Dry-run Worker build
-        run: |
-          mkdir -p live-check
-          set +e
-          npx wrangler deploy --dry-run > live-check/build.txt 2>&1
-          code=$?
-          echo "$code" > live-check/build-exit.txt
-          exit 0
+      - name: Wait for Cloudflare build
+        run: sleep 55
 
       - name: Install Playwright browser
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Capture live calendar
+      - name: Verify live calendar
         run: |
+          mkdir -p live-check
           node --input-type=module <<'EOF'
           import { chromium } from 'playwright';
-          import { writeFileSync, readFileSync } from 'node:fs';
-          const buildExit=Number(readFileSync('live-check/build-exit.txt','utf8').trim());
-          const buildOutput=readFileSync('live-check/build.txt','utf8').slice(-12000);
+          import { writeFileSync } from 'node:fs';
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
           const pageErrors=[];
           page.on('pageerror', err=>pageErrors.push({name:err.name,message:err.message,stack:String(err.stack||'')}));
+          let result={ok:false};
           try {
             await page.goto('https://centraladapta.febredearte.workers.dev', { waitUntil: 'networkidle', timeout: 60000 });
             const calendarButton = page.locator('[data-page="calendar"]').first();
             if (await calendarButton.count()) {
               await calendarButton.click();
-              await page.waitForTimeout(1800);
+              await page.waitForTimeout(2200);
             }
             const diagnostics = await page.evaluate(() => {
               const now=new Date();
               const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
               const today=document.querySelector('#fullCalendar .adapta-actual-today');
+              const other=document.querySelector('#fullCalendar .adapta-other-month');
+              const todayButton=[...document.querySelectorAll('#fullCalendar button')].find(b=>b.textContent.trim().toLowerCase()==='hoje')||null;
               return {
                 browserNow:now.toString(),
                 todayKey:key,
                 patchStyleV49:!!document.getElementById('calendar-today-ux-v49'),
                 patchRuntimeV49:!!document.getElementById('calendar-today-runtime-v49'),
-                patchStyleV48:!!document.getElementById('calendar-today-ux-v48'),
                 todayFound:!!today,
                 todayDate:today?.getAttribute('data-date')||null,
+                todayNumber:today?.querySelector('[role="link"]')?.textContent?.trim()||null,
                 todayLabel:today?.querySelector('.adapta-today-label')?.textContent?.trim()||null,
+                todayBackground:today?getComputedStyle(today).backgroundColor:null,
+                todayBoxShadow:today?getComputedStyle(today).boxShadow:null,
+                otherMonthFound:!!other,
+                otherMonthDate:other?.getAttribute('data-date')||null,
+                otherMonthOpacity:other?.firstElementChild?getComputedStyle(other.firstElementChild).opacity:null,
+                todayButtonFound:!!todayButton,
+                todayButtonDisabled:todayButton?.disabled??null,
                 currentCellFound:!!document.querySelector(`#fullCalendar [role="gridcell"][data-date="${key}"]`)
               };
             });
-            writeFileSync('live-check/status.json', JSON.stringify({ok:true,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),buildExit,buildOutput,pageErrors,...diagnostics},null,2));
+            result={
+              ok: pageErrors.length===0 && diagnostics.patchStyleV49 && diagnostics.patchRuntimeV49 && diagnostics.todayFound && diagnostics.todayDate===diagnostics.todayKey && diagnostics.todayLabel==='HOJE' && diagnostics.todayButtonFound && diagnostics.todayButtonDisabled===false,
+              runId:process.env.GITHUB_RUN_ID,
+              checkedAt:new Date().toISOString(),
+              pageErrors,
+              ...diagnostics
+            };
+            writeFileSync('live-check/status.json',JSON.stringify(result,null,2));
             await page.screenshot({path:'live-check/calendar-live.png',fullPage:true});
           } catch(e){
-            writeFileSync('live-check/status.json',JSON.stringify({ok:false,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),buildExit,buildOutput,pageErrors,error:String(e.stack||e)},null,2));
+            result={ok:false,runId:process.env.GITHUB_RUN_ID,checkedAt:new Date().toISOString(),pageErrors,error:String(e.stack||e)};
+            writeFileSync('live-check/status.json',JSON.stringify(result,null,2));
             await page.screenshot({path:'live-check/calendar-live.png',fullPage:true}).catch(()=>{});
           } finally { await browser.close(); }
+          if(!result.ok) process.exitCode=1;
           EOF
 
       - name: Upload diagnostics
