@@ -1,0 +1,27 @@
+name: TEMP D1 Recovery
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/temp-d1-recovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: dca97af6a15592dde7c8119ef1f7ff94
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Read D1 history
+        run: |
+          npx wrangler d1 execute central-adapta-db --remote --command "SELECT revision, changed_at, changed_by, json_extract(state_json,'$.holidayRecords') AS holidayRecords, json_extract(state_json,'$.holidays') AS holidays, json_extract(state_json,'$.holidayCommunicationTasks') AS holidayCommunicationTasks, json_extract(state_json,'$.holidayContents') AS holidayContents FROM state_history ORDER BY id DESC LIMIT 20;"
