@@ -18,31 +18,54 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - run: npm install --no-audit --no-fund
-      - name: Build generated frontend
-        run: npx wrangler deploy --dry-run
-      - name: Find embedded holiday module
+      - name: Wait for Cloudflare Git deploy
+        run: sleep 25
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify live holiday progress
         run: |
           node --input-type=module <<'EOF'
-          import { readFileSync, writeFileSync } from 'node:fs';
-          const html=readFileSync('public/index.html','utf8');
-          const candidates=[...html.matchAll(/[A-Za-z0-9+/]{8000,}={0,2}/g)];
-          let found=null;
-          for(const match of candidates){
-            let decoded='';try{decoded=Buffer.from(match[0],'base64').toString('utf8')}catch{continue}
-            if(decoded.includes('expediente-select') || decoded.includes('Resumo das decisões') || decoded.includes('summary-panel')){found={encoded:match[0],decoded,index:match.index};break}
-          }
-          if(!found) throw new Error('holiday payload not found among '+candidates.length+' base64 candidates');
-          writeFileSync('holiday-native-module.html',found.decoded);
-          const needles=['Progresso geral das decisões','Progresso geral','progress','decisões','decision','summary'];
-          const chunks=[];
-          for(const needle of needles){let from=0;while(true){const i=found.decoded.toLowerCase().indexOf(needle.toLowerCase(),from);if(i<0)break;chunks.push(`\n=== ${needle} @ ${i} ===\n`+found.decoded.slice(Math.max(0,i-7000),Math.min(found.decoded.length,i+14000)));from=i+needle.length}}
-          writeFileSync('holiday-progress-source.txt',chunks.join('\n').slice(0,200000));
+          import { chromium } from 'playwright';
+          import { writeFileSync } from 'node:fs';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1600,height:1200}});
+          const errors=[];page.on('pageerror',e=>errors.push(e.message));
+          await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
+          const nav=page.locator('[data-page="holidays"]').first();
+          if(await nav.count()) await nav.click();
+          await page.waitForTimeout(1800);
+          const result=await page.evaluate(async()=>{
+            const apiResponse=await fetch('/api/holiday-records',{cache:'no-store'});
+            const api=apiResponse.ok?await apiResponse.json():null;
+            const host=document.getElementById('feriadosNativeHost');
+            const root=host?.shadowRoot||null;
+            const records=Array.isArray(api?.holidayRecords)?api.holidayRecords:[];
+            const tasks=Array.isArray(api?.holidayCommunicationTasks)?api.holidayCommunicationTasks:[];
+            const ids=[...new Set(tasks.map(x=>x.holidayId).filter(Boolean))];
+            const decided=ids.filter(id=>{const r=records.find(x=>x.feriado_id===id);return r&&String(r.expediente||'').trim()&&r.expediente!=='A definir'}).length;
+            const expected=ids.length?Math.round(decided/ids.length*100):0;
+            return {
+              patch:!!document.getElementById('holiday-persisted-progress-v1'),
+              total:ids.length,decided,expected,
+              displayedPercent:root?.querySelector('.progress-percent')?.textContent?.trim()||null,
+              displayedText:root?.querySelector('.progress-text')?.textContent?.trim()||null,
+              displayedFill:root?.querySelector('.progress-fill')?.style?.width||null,
+              hasShadow:!!root
+            };
+          });
+          result.errors=errors;
+          result.ok=result.patch&&result.hasShadow&&result.total===9&&result.decided===7&&result.expected===78&&result.displayedPercent==='78%'&&result.displayedText==='7 de 9 feriados com decisão registrada'&&result.displayedFill==='78%'&&errors.length===0;
+          writeFileSync('holiday-progress-live.json',JSON.stringify(result,null,2));
+          await browser.close();
+          if(!result.ok){console.error(result);process.exit(1)}
           EOF
-      - name: Record diagnostic
+      - name: Record result
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
-          git add holiday-progress-source.txt holiday-native-module.html
-          git commit -m "ci: identify embedded holiday module payload" || true
+          git add holiday-progress-live.json
+          git commit -m "ci: verify live holiday progress" || true
           git push
