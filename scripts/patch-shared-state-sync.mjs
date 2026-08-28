@@ -2,22 +2,22 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const FILE="public/index.html";
 let html=readFileSync(FILE,"utf8");
-const marker="shared-state-sync-v3";
+const marker="central-state-architecture-v4";
 if(html.includes(marker)) process.exit(0);
 
 const script=`<script id="${marker}">
 (function(){
   const KEY="central_adapta_v40";
   const ACTOR_KEY="central_adapta_declared_actor";
+  const LEGACY_ACTOR_KEY="central_adapta_declared_by";
   const ENDPOINT="/api/shared-state";
-  const POLL_MS=5000;
-  const BACKUP_KEY="central_adapta_pre_live_sync_backup";
-  const RESTORED_KEY="central_adapta_backup_restored_v3";
+  const POLL_MS=3000;
   const originalSetItem=Storage.prototype.setItem;
-  let syncing=false;
+  let applyingServer=false;
+  let bootstrapped=false;
   let queue=Promise.resolve();
-  let lastRemoteRevision=0;
-  let lastRemoteState=null;
+  let lastRevision=0;
+  let serverState=null;
   let pendingRemote=null;
   let polling=false;
 
@@ -25,31 +25,17 @@ const script=`<script id="${marker}">
   function parse(text){try{return JSON.parse(text)}catch{return null}}
   function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
   function diff(before,after,path=[],depth=0,out=[]){
-    if(out.length>=200||same(before,after))return out;
-    if(depth>=4||Array.isArray(before)||Array.isArray(after)||before===null||after===null||typeof before!=="object"||typeof after!=="object"){
+    if(out.length>=300||same(before,after))return out;
+    if(depth>=5||Array.isArray(before)||Array.isArray(after)||before===null||after===null||typeof before!=="object"||typeof after!=="object"){
       out.push({path,value:after,remove:after===undefined});return out;
     }
     const keys=new Set([...Object.keys(before||{}),...Object.keys(after||{})]);
     for(const key of keys){
-      if(out.length>=200)break;
+      if(out.length>=300)break;
       if(!(key in (after||{})))out.push({path:[...path,key],remove:true});
       else diff(before?.[key],after?.[key],[...path,key],depth+1,out);
     }
     return out;
-  }
-  function applyPatch(target,path,value,remove){
-    if(!Array.isArray(path)||!path.length)return;
-    let cursor=target;
-    for(let i=0;i<path.length-1;i++){
-      const key=path[i];
-      if(cursor[key]==null||typeof cursor[key]!=="object")cursor[key]=typeof path[i+1]==="number"?[]:{};
-      cursor=cursor[key];
-    }
-    const leaf=path[path.length-1];
-    if(remove){
-      if(Array.isArray(cursor)&&typeof leaf==="number")cursor.splice(leaf,1);
-      else delete cursor[leaf];
-    }else cursor[leaf]=clone(value);
   }
   function currentArea(){
     const active=document.querySelector('.page.active,[id^="page-"]:not([hidden])');
@@ -58,10 +44,10 @@ const script=`<script id="${marker}">
     return (active?.id||"Central").replace(/^page-/,"").slice(0,120);
   }
   function actor(){
-    let value=sessionStorage.getItem(ACTOR_KEY)||"";
-    if(value.trim())return value.trim();
+    let value=(sessionStorage.getItem(ACTOR_KEY)||sessionStorage.getItem(LEGACY_ACTOR_KEY)||"").trim();
+    if(value){sessionStorage.setItem(ACTOR_KEY,value);sessionStorage.setItem(LEGACY_ACTOR_KEY,value);return value}
     value=(window.prompt("Quem está registrando esta alteração?\\n\\nIsso serve apenas para o log da Central — não é login.")||"").trim();
-    if(value)sessionStorage.setItem(ACTOR_KEY,value);
+    if(value){sessionStorage.setItem(ACTOR_KEY,value);sessionStorage.setItem(LEGACY_ACTOR_KEY,value)}
     return value;
   }
   function editingNow(){
@@ -79,130 +65,135 @@ const script=`<script id="${marker}">
     }
     el.textContent=text;clearTimeout(el.__hideTimer);el.__hideTimer=setTimeout(()=>el.remove(),ms);
   }
-  function commitLocal(next){
+  function refreshUi(){
+    try{if(typeof syncHolidayRecordsToCentral==="function")syncHolidayRecordsToCentral()}catch{}
+    try{if(typeof refresh==="function")refresh();else if(typeof renderAll==="function")renderAll()}catch{}
+    try{window.__adaptaRefreshCalendarToday?.()}catch{}
+    try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch{}
+  }
+  function applyServer(result,announce=false){
+    if(!result?.state||!Number.isFinite(Number(result.revision)))return false;
+    applyingServer=true;
     try{
-      syncing=true;
-      if(typeof state==="object"&&state){for(const key of Object.keys(state))delete state[key];Object.assign(state,clone(next))}
+      const next=clone(result.state);
+      if(typeof state==="object"&&state){for(const key of Object.keys(state))delete state[key];Object.assign(state,next)}
       originalSetItem.call(localStorage,KEY,JSON.stringify(next));
-      try{if(typeof syncHolidayRecordsToCentral==="function")syncHolidayRecordsToCentral()}catch{}
-      try{if(typeof refresh==="function")refresh();else if(typeof renderAll==="function")renderAll()}catch{}
-      try{window.__adaptaRefreshCalendarToday?.()}catch{}
-    }finally{syncing=false}
-  }
-  function restoreBackupIfNeeded(){
-    if(sessionStorage.getItem(RESTORED_KEY))return;
-    const backup=parse(sessionStorage.getItem(BACKUP_KEY)||"null");
-    const current=parse(localStorage.getItem(KEY)||"null");
-    if(!backup||!current||same(backup,current))return;
-    commitLocal(backup);
-    sessionStorage.setItem(RESTORED_KEY,"1");
-    notify("Recuperei os dados locais que existiam antes da sincronização. Eles não foram enviados automaticamente ao banco.",6500);
-  }
-  function applyRemoteDelta(result,announce=true){
-    if(!result?.state||!Number.isFinite(Number(result.revision)))return;
-    if(editingNow()){
-      pendingRemote=result;
-      notify("Outra pessoa atualizou a Central. Vou aplicar quando você terminar esta edição.");
-      return;
-    }
-    const local=parse(localStorage.getItem(KEY)||"null");
-    if(!local){
-      commitLocal(result.state);
-    }else if(lastRemoteState){
-      const patches=diff(lastRemoteState,result.state);
-      const next=clone(local);
-      for(const patch of patches)applyPatch(next,patch.path,patch.value,Boolean(patch.remove));
-      if(patches.length)commitLocal(next);
-    }
-    lastRemoteRevision=Number(result.revision)||lastRemoteRevision;
-    lastRemoteState=clone(result.state);
+      serverState=clone(next);
+      lastRevision=Number(result.revision)||0;
+      window.__adaptaLastRemoteState=result;
+      refreshUi();
+    }finally{applyingServer=false}
     pendingRemote=null;
-    window.__adaptaLastRemoteState=result;
+    window.dispatchEvent(new CustomEvent("adapta:central-state",{detail:result}));
     window.dispatchEvent(new CustomEvent("adapta:remote-updated",{detail:result}));
     if(announce){
       const who=String(result.updatedBy||"").replace(/^declared:/,"");
-      notify(who ? ("Atualizado por " + who + ".") : "A Central foi atualizada por outra pessoa.");
+      notify(who?("Central atualizada por "+who+"."):"A Central foi atualizada.");
     }
+    return true;
   }
   async function readRemote(){
-    const response=await fetch(ENDPOINT,{cache:"no-store"});
-    if(!response.ok)throw new Error("remote_read_failed");
+    const response=await fetch(ENDPOINT,{cache:"no-store",credentials:"same-origin"});
+    if(!response.ok)throw new Error("central_read_failed");
     return response.json();
-  }
-  async function poll(){
-    if(polling||document.hidden)return;
-    polling=true;
-    try{
-      const result=await readRemote();
-      const revision=Number(result?.revision||0);
-      if(!lastRemoteRevision){
-        const local=parse(localStorage.getItem(KEY)||"null");
-        lastRemoteRevision=revision;
-        lastRemoteState=clone(result.state);
-        if(!local&&result?.state)commitLocal(result.state);
-      }else if(revision>lastRemoteRevision){
-        applyRemoteDelta(result,true);
-      }
-    }catch(error){console.warn("Sincronização em tempo quase real indisponível.",error)}
-    finally{polling=false}
   }
   async function send(patches,area,declaredBy){
-    if(!patches.length||!declaredBy)return;
-    const response=await fetch(ENDPOINT,{method:"PATCH",headers:{"content-type":"application/json"},cache:"no-store",body:JSON.stringify({patches,area,declaredBy})});
-    if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||"sync_failed")}
-    return response.json();
+    const response=await fetch(ENDPOINT,{method:"PATCH",headers:{"content-type":"application/json"},cache:"no-store",credentials:"same-origin",body:JSON.stringify({patches,area,declaredBy})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||"central_write_failed");
+    return data;
   }
   function enqueue(patches,area,declaredBy){
     queue=queue.then(async()=>{
       try{
-        syncing=true;
         const result=await send(patches,area,declaredBy);
-        const fresh=await readRemote().catch(()=>null);
-        if(fresh?.state){lastRemoteRevision=Number(fresh.revision||0);lastRemoteState=clone(fresh.state)}
+        const fresh=await readRemote();
+        applyServer(fresh,false);
         window.__adaptaLastD1Sync=result||null;
         window.dispatchEvent(new CustomEvent("adapta:d1-synced",{detail:result||{}}));
       }catch(error){
-        console.error("Falha ao sincronizar alteração da Central no D1",error);
+        console.error("Falha ao salvar alteração central no D1",error);
+        if(serverState) applyServer({state:serverState,revision:lastRevision,updatedBy:"rollback"},false);
+        notify("A alteração não foi salva no banco central. A tela voltou ao último estado confirmado.",6500);
         window.dispatchEvent(new CustomEvent("adapta:d1-sync-error",{detail:{message:String(error?.message||error)}}));
-      }finally{syncing=false}
+      }
     });
+    return queue;
   }
+  async function bootstrap(){
+    try{
+      const remote=await readRemote();
+      applyServer(remote,false);
+      bootstrapped=true;
+      document.documentElement.dataset.centralState="ready";
+      window.dispatchEvent(new CustomEvent("adapta:central-ready",{detail:remote}));
+    }catch(error){
+      console.error("Não foi possível carregar o estado central do D1",error);
+      document.documentElement.dataset.centralState="offline";
+      notify("Não consegui carregar o banco central. Evite editar até a conexão voltar.",6500);
+    }
+  }
+  async function poll(){
+    if(polling||document.hidden||!bootstrapped)return;
+    polling=true;
+    try{
+      const remote=await readRemote();
+      const revision=Number(remote?.revision||0);
+      if(revision>lastRevision){
+        if(editingNow()){
+          pendingRemote=remote;
+          notify("Outra pessoa atualizou a Central. A atualização entra assim que você terminar esta edição.");
+        }else applyServer(remote,true);
+      }
+    }catch(error){console.warn("Atualização central temporariamente indisponível",error)}
+    finally{polling=false}
+  }
+  function tryPending(){if(!pendingRemote||editingNow())return;const next=pendingRemote;pendingRemote=null;applyServer(next,true)}
 
   Storage.prototype.setItem=function(key,value){
-    if(this!==localStorage||key!==KEY||syncing)return originalSetItem.call(this,key,value);
-    const previous=parse(localStorage.getItem(KEY)||"null");
+    if(this!==localStorage||key!==KEY||applyingServer)return originalSetItem.call(this,key,value);
+    const previous=parse(localStorage.getItem(KEY)||"null")||serverState;
     const next=parse(value);
     const result=originalSetItem.call(this,key,value);
-    if(!previous||!next)return result;
+    if(!bootstrapped||!previous||!next)return result;
     const patches=diff(previous,next);
-    const filtered=patches.filter(p=>!(p.path?.[0]==="holidayRecords"));
-    if(filtered.length){
-      const declaredBy=actor();
-      if(declaredBy)enqueue(filtered,currentArea(),declaredBy);
-      else console.warn("Alteração mantida localmente, mas não sincronizada: autoria não informada.");
+    if(!patches.length)return result;
+    const declaredBy=actor();
+    if(!declaredBy){
+      if(serverState)applyServer({state:serverState,revision:lastRevision,updatedBy:"cancelled"},false);
+      notify("Alteração cancelada: informe seu nome para registrar no histórico.");
+      return result;
     }
+    enqueue(patches,currentArea(),declaredBy);
     return result;
   };
 
-  function tryPending(){if(!pendingRemote||editingNow())return;const next=pendingRemote;pendingRemote=null;applyRemoteDelta(next,true)}
   document.addEventListener("focusout",()=>setTimeout(tryPending,80),true);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
-
   window.__adaptaDeclaredActor={
-    get:()=>sessionStorage.getItem(ACTOR_KEY)||"",
-    set:value=>{const clean=String(value||"").trim();if(clean)sessionStorage.setItem(ACTOR_KEY,clean);else sessionStorage.removeItem(ACTOR_KEY)},
-    clear:()=>sessionStorage.removeItem(ACTOR_KEY)
+    get:()=>sessionStorage.getItem(ACTOR_KEY)||sessionStorage.getItem(LEGACY_ACTOR_KEY)||"",
+    set:value=>{const clean=String(value||"").trim();if(clean){sessionStorage.setItem(ACTOR_KEY,clean);sessionStorage.setItem(LEGACY_ACTOR_KEY,clean)}else{sessionStorage.removeItem(ACTOR_KEY);sessionStorage.removeItem(LEGACY_ACTOR_KEY)}},
+    clear:()=>{sessionStorage.removeItem(ACTOR_KEY);sessionStorage.removeItem(LEGACY_ACTOR_KEY)}
   };
-  window.__adaptaLiveSync={poll,applyPending:tryPending,getRevision:()=>lastRemoteRevision};
+  window.__adaptaCentralState={
+    read:readRemote,
+    poll,
+    applyServer,
+    getRevision:()=>lastRevision,
+    getState:()=>clone(serverState),
+    write:async(patches,area=currentArea(),declaredBy=actor())=>{if(!declaredBy)throw new Error("declared_by_required");await enqueue(patches,area,declaredBy);return window.__adaptaLastRemoteState},
+    ready:()=>bootstrapped
+  };
+  window.__adaptaLiveSync=window.__adaptaCentralState;
 
-  restoreBackupIfNeeded();
-  setTimeout(poll,250);
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootstrap,{once:true});else bootstrap();
   setInterval(poll,POLL_MS);
 })();
 </script>`;
 
 if(!html.includes("</body>"))throw new Error("public/index.html sem </body>");
-html=html.replace(/<script id="shared-state-sync-v[12]">[\s\S]*?<\/script>\s*/g,"");
+html=html.replace(/<script id="shared-state-sync-v[123]">[\s\S]*?<\/script>\s*/g,"");
+html=html.replace(/<script id="central-state-architecture-v4">[\s\S]*?<\/script>\s*/g,"");
 html=html.replace("</body>",script+"\n</body>");
 writeFileSync(FILE,html,"utf8");
-console.log("Central Adapta: sync v3 preserva legado local e aplica apenas deltas remotos.");
+console.log("Central Adapta: D1 agora é a fonte única de estado; localStorage funciona apenas como cache de compatibilidade.");
