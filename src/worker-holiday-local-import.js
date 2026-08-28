@@ -14,12 +14,6 @@ function asArray(value){ return Array.isArray(value) ? clone(value) : []; }
 function validRecord(record){
   return record && typeof record === "object" && typeof record.feriado_id === "string" && record.feriado_id.trim();
 }
-function mergeByHolidayId(current, incoming){
-  const map = new Map();
-  for(const item of asArray(current)) if(validRecord(item)) map.set(item.feriado_id, item);
-  for(const item of asArray(incoming)) if(validRecord(item)) map.set(item.feriado_id, item);
-  return [...map.values()];
-}
 function mergeHolidayItems(currentItems, incomingItems){
   const result = currentItems && typeof currentItems === "object" && !Array.isArray(currentItems) ? clone(currentItems) : {};
   const source = incomingItems && typeof incomingItems === "object" && !Array.isArray(incomingItems) ? incomingItems : {};
@@ -62,14 +56,19 @@ async function importLocalHolidayState(request, env, actor){
   let current;
   try { current = JSON.parse(currentRow.state_json); } catch { return json({error:"invalid_current_state"},500); }
 
+  const currentRecords = asArray(current.holidayRecords).filter(validRecord);
+  if(currentRecords.length){
+    return json({
+      error:"central_already_has_holiday_records",
+      currentRecords:currentRecords.length,
+      revision:Number(currentRow.revision || 0)
+    },409);
+  }
+
   const recovered = clone(current);
-  recovered.holidayRecords = mergeByHolidayId(current.holidayRecords, localRecords);
-  recovered.holidayCommunicationTasks = asArray(local.holidayCommunicationTasks).length
-    ? asArray(local.holidayCommunicationTasks)
-    : asArray(current.holidayCommunicationTasks);
-  recovered.holidayContents = asArray(local.holidayContents).length
-    ? asArray(local.holidayContents)
-    : asArray(current.holidayContents);
+  recovered.holidayRecords = localRecords;
+  recovered.holidayCommunicationTasks = asArray(local.holidayCommunicationTasks);
+  recovered.holidayContents = asArray(local.holidayContents);
   recovered.items = mergeHolidayItems(current.items, local.items);
   recovered.calendarEntries = mergeHolidayCalendarEntries(current.calendarEntries, local.calendarEntries);
 
