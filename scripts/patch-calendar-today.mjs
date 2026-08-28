@@ -27,9 +27,15 @@ html = html.replace(openCalendarMarker, openCalendarReplacement);
 html = html.replaceAll("  fullCalendarInstance.rerenderEvents();", "  if(typeof fullCalendarInstance.rerenderEvents===\"function\")fullCalendarInstance.rerenderEvents();");
 html = html.replaceAll("  fullCalendarInstance.updateSize();", "  if(typeof fullCalendarInstance.updateSize===\"function\")fullCalendarInstance.updateSize();");
 
-const todayCss = `<style id="calendar-today-ux-v51">
+const todayCss = `<style id="calendar-today-ux-v52">
 #fullCalendar{--fc-today-bg-color:transparent!important}
-#fullCalendar .fc-day-today:not(.adapta-actual-today){background:transparent!important}
+#fullCalendar .fc-day-today:not(.adapta-actual-today),
+#fullCalendar .fc-day-today:not(.adapta-actual-today) > *,
+#fullCalendar [role="gridcell"].adapta-client-today:not(.adapta-actual-today),
+#fullCalendar [role="gridcell"].adapta-client-today:not(.adapta-actual-today) > *{
+  background:transparent!important;
+  background-color:transparent!important;
+}
 #fullCalendar [role="gridcell"].adapta-other-month{background:#fbfcfb !important}
 #fullCalendar [role="gridcell"].adapta-other-month > *{opacity:.22 !important}
 #fullCalendar [role="gridcell"].adapta-actual-today{background:#edf4f0 !important;box-shadow:inset 0 0 0 2px #0A3426 !important;position:relative;z-index:1}
@@ -39,14 +45,16 @@ const todayCss = `<style id="calendar-today-ux-v51">
 </style>`;
 
 html = html.replace(/<style id="calendar-today-ux-v\d+">[\s\S]*?<\/style>/, "");
-if (!html.includes('id="calendar-today-ux-v51"')) html = html.replace("</head>", `${todayCss}</head>`);
+if (!html.includes('id="calendar-today-ux-v52"')) html = html.replace("</head>", `${todayCss}</head>`);
 
-const todayRuntime = `<script id="calendar-today-runtime-v51">
+const todayRuntime = `<script id="calendar-today-runtime-v52">
 (function(){
   const root=document.getElementById("fullCalendar");
   if(!root)return;
   let officialDate=null;
   let clockPromise=null;
+  let refreshScheduled=false;
+  let refreshing=false;
 
   async function loadClock(){
     if(clockPromise)return clockPromise;
@@ -68,27 +76,45 @@ const todayRuntime = `<script id="calendar-today-runtime-v51">
   }
   function clearClientToday(){
     const key=todayKey();
-    root.querySelectorAll('.fc-day-today').forEach(cell=>{
-      if(!key||cell.getAttribute('data-date')!==key)cell.classList.remove('fc-day-today');
+    root.querySelectorAll('[role="gridcell"][data-date]').forEach(cell=>{
+      const date=cell.getAttribute('data-date')||'';
+      const isOfficial=!!key&&date===key;
+      const isClientToday=cell.classList.contains('fc-day-today');
+      cell.classList.toggle('adapta-client-today',isClientToday&&!isOfficial);
+      if(isClientToday&&!isOfficial)cell.classList.remove('fc-day-today');
+      if(!isOfficial){
+        cell.style.removeProperty('background');
+        cell.style.removeProperty('background-color');
+      }
     });
   }
   function markActualToday(){
-    root.querySelectorAll(".adapta-actual-today").forEach(cell=>cell.classList.remove("adapta-actual-today"));
-    root.querySelectorAll(".adapta-today-label").forEach(label=>label.remove());
     const key=todayKey(); if(!key)return null;
+    root.querySelectorAll(".adapta-actual-today").forEach(cell=>{if(cell.getAttribute('data-date')!==key)cell.classList.remove("adapta-actual-today")});
+    root.querySelectorAll(".adapta-today-label").forEach(label=>label.remove());
     clearClientToday();
     const cell=root.querySelector('[role="gridcell"][data-date="'+key+'"]'); if(!cell)return null;
+    cell.classList.remove('adapta-client-today');
     cell.classList.add("adapta-actual-today");
     const top=cell.firstElementChild;if(top){const label=document.createElement("span");label.className="adapta-today-label";label.textContent="HOJE";top.prepend(label)}
     return cell;
   }
   function todayButton(){return [...root.querySelectorAll("button")].find(button=>button.textContent.trim().toLowerCase()==="hoje")||null}
   function enableTodayButton(){const button=todayButton();if(!button)return;button.disabled=false;button.removeAttribute("disabled");button.setAttribute("aria-disabled","false");button.style.opacity="1";button.style.cursor="pointer"}
-  function refresh(){markOtherMonths();clearClientToday();markActualToday();enableTodayButton()}
+  function refresh(){
+    if(refreshing)return;
+    refreshing=true;
+    try{markOtherMonths();clearClientToday();markActualToday();enableTodayButton()}finally{refreshing=false}
+  }
+  function scheduleRefresh(){
+    if(refreshScheduled)return;
+    refreshScheduled=true;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{refreshScheduled=false;refresh()}));
+  }
   async function goToday(){
     const key=await loadClock(); if(!key)return;
     if(typeof fullCalendarInstance?.gotoDate==="function") fullCalendarInstance.gotoDate(key);
-    requestAnimationFrame(()=>requestAnimationFrame(refresh));
+    scheduleRefresh();
   }
   function scrollCurrentDay(){const todayCell=markActualToday();if(!todayCell)return;const headerHeight=document.querySelector(".shell-header")?.getBoundingClientRect().height||0;const targetY=todayCell.getBoundingClientRect().top+window.scrollY-headerHeight-190;window.scrollTo({top:Math.max(0,targetY),behavior:"smooth"})}
 
@@ -96,14 +122,17 @@ const todayRuntime = `<script id="calendar-today-runtime-v51">
   window.__adaptaScrollCalendarToday=scrollCurrentDay;
   window.__adaptaGoCalendarToday=goToday;
 
-  loadClock().then(()=>{goToday();requestAnimationFrame(()=>requestAnimationFrame(refresh))});
-  root.addEventListener("click",()=>requestAnimationFrame(()=>requestAnimationFrame(refresh)),true);
+  const observer=new MutationObserver(()=>{if(!refreshing)scheduleRefresh()});
+  observer.observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','data-date']});
+
+  loadClock().then(()=>{goToday();scheduleRefresh()});
+  root.addEventListener("click",scheduleRefresh,true);
   document.addEventListener("click",event=>{const button=todayButton();if(!button||!button.contains(event.target))return;event.preventDefault();event.stopPropagation();goToday().then(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{refresh();scrollCurrentDay()})))},true);
 })();
 </script>`;
 
 html = html.replace(/<script id="calendar-today-runtime-v\d+">[\s\S]*?<\/script>/, "");
-if (!html.includes('id="calendar-today-runtime-v51"')) html = html.replace("</body>", `${todayRuntime}</body>`);
+if (!html.includes('id="calendar-today-runtime-v52"')) html = html.replace("</body>", `${todayRuntime}</body>`);
 
 writeFileSync(FILE, html, "utf8");
-console.log("Central Adapta v51: hoje usa Worker e destaque nativo do relógio do cliente é neutralizado.");
+console.log("Central Adapta v52: hoje usa Worker e o destaque nativo do relógio do cliente é removido continuamente.");
