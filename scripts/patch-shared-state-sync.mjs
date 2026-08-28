@@ -94,8 +94,6 @@ const script=`<script id="${marker}">
     const backup=parse(sessionStorage.getItem(BACKUP_KEY)||"null");
     const current=parse(localStorage.getItem(KEY)||"null");
     if(!backup||!current||same(backup,current))return;
-    // Esse backup foi criado imediatamente antes da antiga hidratação destrutiva.
-    // Restaurá-lo localmente é seguro; não o envia automaticamente ao D1.
     commitLocal(backup);
     sessionStorage.setItem(RESTORED_KEY,"1");
     notify("Recuperei os dados locais que existiam antes da sincronização. Eles não foram enviados automaticamente ao banco.",6500);
@@ -123,7 +121,7 @@ const script=`<script id="${marker}">
     window.dispatchEvent(new CustomEvent("adapta:remote-updated",{detail:result}));
     if(announce){
       const who=String(result.updatedBy||"").replace(/^declared:/,"");
-      notify(who?`Atualizado por ${who}.`:"A Central foi atualizada por outra pessoa.");
+      notify(who ? ("Atualizado por " + who + ".") : "A Central foi atualizada por outra pessoa.");
     }
   }
   async function readRemote(){
@@ -138,8 +136,6 @@ const script=`<script id="${marker}">
       const result=await readRemote();
       const revision=Number(result?.revision||0);
       if(!lastRemoteRevision){
-        // Primeira leitura vira apenas baseline se o navegador já tem estado.
-        // Isso evita repetir a perda de dados locais legados.
         const local=parse(localStorage.getItem(KEY)||"null");
         lastRemoteRevision=revision;
         lastRemoteState=clone(result.state);
