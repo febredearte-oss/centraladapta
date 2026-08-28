@@ -23,15 +23,15 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Brief wait
-        run: sleep 5
+      - name: Wait for Cloudflare Git deployment
+        run: sleep 30
 
       - name: Install Playwright browser
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify live calendar
+      - name: Verify live Central
         run: |
           mkdir -p live-check
           node --input-type=module <<'EOF'
@@ -44,40 +44,40 @@ jobs:
           let result={ok:false};
           try {
             await page.goto('https://centraladapta.febredearte.workers.dev', { waitUntil: 'networkidle', timeout: 60000 });
+            const clock = await page.evaluate(async()=>{
+              const r=await fetch('/api/central-clock',{cache:'no-store'});
+              return r.ok?await r.json():null;
+            });
             const calendarButton = page.locator('[data-page="calendar"]').first();
             if (await calendarButton.count()) {
               await calendarButton.click();
-              await page.waitForTimeout(2200);
+              await page.waitForTimeout(2500);
             }
-            const diagnostics = await page.evaluate(() => {
-              const now=new Date();
-              const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            const diagnostics = await page.evaluate((officialDate) => {
               const today=document.querySelector('#fullCalendar .adapta-actual-today');
-              const other=document.querySelector('#fullCalendar .adapta-other-month');
-              const todayButton=[...document.querySelectorAll('#fullCalendar button')].find(b=>b.textContent.trim().toLowerCase()==='hoje')||null;
+              const nativeToday=[...document.querySelectorAll('#fullCalendar .fc-day-today')].map(el=>el.getAttribute('data-date')).filter(Boolean);
+              const wrongNativeToday=nativeToday.filter(date=>date!==officialDate);
+              const favicon=[...document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"]')].map(el=>el.getAttribute('href'));
               return {
-                browserNow:now.toString(),
-                todayKey:key,
-                patchStyleV49:!!document.getElementById('calendar-today-ux-v49'),
-                patchRuntimeV49:!!document.getElementById('calendar-today-runtime-v49'),
+                officialDate,
+                officialDateWindow:window.__adaptaOfficialDate||null,
+                patchStyleV51:!!document.getElementById('calendar-today-ux-v51'),
+                patchRuntimeV51:!!document.getElementById('calendar-today-runtime-v51'),
+                sharedSyncV3:!!document.getElementById('shared-state-sync-v3'),
                 todayFound:!!today,
                 todayDate:today?.getAttribute('data-date')||null,
-                todayNumber:today?.querySelector('[role="link"]')?.textContent?.trim()||null,
                 todayLabel:today?.querySelector('.adapta-today-label')?.textContent?.trim()||null,
-                todayBackground:today?getComputedStyle(today).backgroundColor:null,
-                todayBoxShadow:today?getComputedStyle(today).boxShadow:null,
-                otherMonthFound:!!other,
-                otherMonthDate:other?.getAttribute('data-date')||null,
-                otherMonthOpacity:other?.firstElementChild?getComputedStyle(other.firstElementChild).opacity:null,
-                todayButtonFound:!!todayButton,
-                todayButtonDisabled:todayButton?.disabled??null,
-                currentCellFound:!!document.querySelector(`#fullCalendar [role="gridcell"][data-date="${key}"]`)
+                nativeToday,
+                wrongNativeToday,
+                favicon,
+                faviconOk:favicon.some(h=>String(h||'').includes('/brand/adapta-brand-icon-trim.png?v=20260828-2'))
               };
-            });
+            }, clock?.date||null);
             result={
-              ok: pageErrors.length===0 && diagnostics.patchStyleV49 && diagnostics.patchRuntimeV49 && diagnostics.todayFound && diagnostics.todayDate===diagnostics.todayKey && diagnostics.todayLabel==='HOJE' && diagnostics.todayButtonFound && diagnostics.todayButtonDisabled===false,
+              ok: pageErrors.length===0 && !!clock?.date && diagnostics.patchStyleV51 && diagnostics.patchRuntimeV51 && diagnostics.sharedSyncV3 && diagnostics.todayFound && diagnostics.todayDate===clock.date && diagnostics.todayLabel==='HOJE' && diagnostics.wrongNativeToday.length===0 && diagnostics.faviconOk,
               runId:process.env.GITHUB_RUN_ID,
               checkedAt:new Date().toISOString(),
+              clock,
               pageErrors,
               ...diagnostics
             };
@@ -105,5 +105,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add live-check/status.json
-          git commit -m "ci: record live calendar verification" || true
+          git commit -m "ci: record live Central verification" || true
           git push
