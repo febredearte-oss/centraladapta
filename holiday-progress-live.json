@@ -1,0 +1,12 @@
+{
+  "patch": true,
+  "total": 9,
+  "decided": 7,
+  "expected": 78,
+  "displayedPercent": "78%",
+  "displayedText": "7 de 9 feriados com decisão registrada",
+  "displayedFill": "78%",
+  "hasShadow": true,
+  "errors": [],
+  "ok": true
+}
