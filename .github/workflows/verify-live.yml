@@ -24,7 +24,7 @@ jobs:
           node-version: "22"
 
       - name: Wait for Cloudflare Git deployment
-        run: sleep 30
+        run: sleep 20
 
       - name: Install Playwright browser
         run: |
@@ -44,6 +44,12 @@ jobs:
           let result={ok:false};
           try {
             await page.goto('https://centraladapta.febredearte.workers.dev', { waitUntil: 'networkidle', timeout: 60000 });
+            const pre = await page.evaluate(()=>({
+              unscheduledCalendarItems: typeof unscheduledCalendarItems==='function' ? unscheduledCalendarItems.toString() : null,
+              stateItemsType: typeof state==='object' && state ? (Array.isArray(state.items)?'array':typeof state.items) : null,
+              stateItemKeys: typeof state==='object' && state?.items && typeof state.items==='object' ? Object.keys(state.items).slice(0,50) : [],
+              calendarEntriesCount: Array.isArray(state?.calendarEntries)?state.calendarEntries.length:null
+            }));
             const clock = await page.evaluate(async()=>{
               const r=await fetch('/api/central-clock',{cache:'no-store'});
               return r.ok?await r.json():null;
@@ -51,7 +57,7 @@ jobs:
             const calendarButton = page.locator('[data-page="calendar"]').first();
             if (await calendarButton.count()) {
               await calendarButton.click();
-              await page.waitForTimeout(2500);
+              await page.waitForTimeout(1800);
             }
             const diagnostics = await page.evaluate((officialDate) => {
               const today=document.querySelector('#fullCalendar .adapta-actual-today');
@@ -79,6 +85,7 @@ jobs:
               checkedAt:new Date().toISOString(),
               clock,
               pageErrors,
+              pre,
               ...diagnostics
             };
             writeFileSync('live-check/status.json',JSON.stringify(result,null,2));
@@ -107,5 +114,3 @@ jobs:
           git add live-check/status.json
           git commit -m "ci: record live Central verification" || true
           git push
-
-# recheck 2026-08-28 after shared-sync build fix
