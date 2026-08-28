@@ -1,6 +1,6 @@
 import baseWorker from "./worker-auto-seed.js";
 
-const RECOVERY_KEY = "holiday_recovery_20260828_v1";
+const RECOVERY_KEY = "holiday_recovery_20260828_v2";
 const STATUS_PATH = "/__holiday-recovery-status-20260828";
 const HOLIDAY_KEYS = [
   "holidays",
@@ -13,37 +13,14 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function informationScore(value, depth = 0) {
-  if (value == null) return 0;
-  if (typeof value === "boolean") return value ? 3 : 0;
-  if (typeof value === "number") return value !== 0 ? 1 : 0;
-  if (typeof value === "string") {
-    const text = value.trim();
-    if (!text) return 0;
-    return 1 + Math.min(3, Math.floor(text.length / 24));
-  }
-  if (Array.isArray(value)) {
-    return value.length + value.reduce((sum, item) => sum + informationScore(item, depth + 1), 0);
-  }
-  if (typeof value === "object") {
-    return Object.entries(value).reduce((sum, [key, item]) => {
-      const structural = depth < 3 && item != null ? 0.15 : 0;
-      const keyBonus = /selected|checked|active|enabled|confirmed|done|complete|status/i.test(key) && item === true ? 2 : 0;
-      return sum + structural + keyBonus + informationScore(item, depth + 1);
-    }, 0);
-  }
-  return 0;
-}
-
-function holidayScore(state) {
-  if (!state || typeof state !== "object") return 0;
-  return HOLIDAY_KEYS.reduce((sum, key) => sum + informationScore(state[key]), 0);
-}
-
 function holidaySnapshot(state) {
   const out = {};
   for (const key of HOLIDAY_KEYS) out[key] = clone(state?.[key]);
   return out;
+}
+
+function stableSnapshotJson(state) {
+  return JSON.stringify(holidaySnapshot(state));
 }
 
 async function writeMeta(env, value) {
@@ -90,55 +67,50 @@ async function recoverHolidayState(env) {
   const currentRow = await env.DB.prepare(
     "SELECT revision, state_json, updated_at, updated_by FROM app_state WHERE id = 1"
   ).first();
+  const previousRow = await env.DB.prepare(
+    "SELECT id, revision, state_json, changed_at, changed_by FROM state_history ORDER BY id DESC LIMIT 1"
+  ).first();
 
-  if (!currentRow?.state_json) {
-    const result = { status: "no_state", appliedAt: new Date().toISOString() };
-    await writeMeta(env, result);
-    return result;
-  }
-
-  let currentState;
-  try { currentState = JSON.parse(currentRow.state_json); }
-  catch {
-    const result = { status: "invalid_current_state", appliedAt: new Date().toISOString() };
-    await writeMeta(env, result);
-    return result;
-  }
-
-  const history = await env.DB.prepare(
-    "SELECT id, revision, state_json, changed_at FROM state_history ORDER BY id DESC LIMIT 20"
-  ).all();
-
-  const currentScore = holidayScore(currentState);
-  let best = null;
-
-  for (const row of history.results || []) {
-    let state;
-    try { state = JSON.parse(row.state_json); } catch { continue; }
-    const score = holidayScore(state);
-    if (!best || score > best.score || (score === best.score && Number(row.id) > Number(best.id))) {
-      best = { ...row, state, score };
-    }
-  }
-
-  // Recovery is deliberately conservative: only restore when a recent historical
-  // snapshot contains strictly more holiday information than the current state.
-  if (!best || best.score <= currentScore + 0.5) {
+  if (!currentRow?.state_json || !previousRow?.state_json) {
     const result = {
-      status: "no_change",
-      currentRevision: Number(currentRow.revision || 0),
-      currentScore,
-      bestHistoricalRevision: best ? Number(best.revision || 0) : null,
-      bestHistoricalScore: best?.score ?? null,
+      status: "no_previous_snapshot",
+      currentRevision: Number(currentRow?.revision || 0),
       appliedAt: new Date().toISOString(),
     };
     await writeMeta(env, result);
     return result;
   }
 
+  let currentState;
+  let previousState;
+  try {
+    currentState = JSON.parse(currentRow.state_json);
+    previousState = JSON.parse(previousRow.state_json);
+  } catch {
+    const result = { status: "invalid_snapshot", appliedAt: new Date().toISOString() };
+    await writeMeta(env, result);
+    return result;
+  }
+
+  const currentHolidayJson = stableSnapshotJson(currentState);
+  const previousHolidayJson = stableSnapshotJson(previousState);
+
+  if (currentHolidayJson === previousHolidayJson) {
+    const result = {
+      status: "identical",
+      currentRevision: Number(currentRow.revision || 0),
+      previousRevision: Number(previousRow.revision || 0),
+      appliedAt: new Date().toISOString(),
+    };
+    await writeMeta(env, result);
+    return result;
+  }
+
+  // The user requested recovery of the immediately previous holiday state.
+  // Only holiday-related fields are replaced. Every other current field stays intact.
   const recoveredState = clone(currentState);
-  const snapshot = holidaySnapshot(best.state);
-  for (const key of HOLIDAY_KEYS) recoveredState[key] = snapshot[key];
+  const previousHoliday = holidaySnapshot(previousState);
+  for (const key of HOLIDAY_KEYS) recoveredState[key] = previousHoliday[key];
 
   const currentRevision = Number(currentRow.revision || 0);
   const nextRevision = currentRevision + 1;
@@ -159,11 +131,9 @@ async function recoverHolidayState(env) {
 
   const result = {
     status: "restored",
-    fromHistoricalRevision: Number(best.revision || 0),
+    fromHistoricalRevision: Number(previousRow.revision || 0),
     previousCurrentRevision: currentRevision,
     newRevision: nextRevision,
-    currentScore,
-    recoveredScore: best.score,
     appliedAt: now,
   };
   await writeMeta(env, result);
