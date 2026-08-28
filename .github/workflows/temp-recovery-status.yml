@@ -17,4 +17,5 @@ jobs:
       - name: Read recovery status
         run: |
           set -e
+          sleep 12
           curl -i --fail-with-body --max-time 30 https://centraladapta.febredearte.workers.dev/__holiday-recovery-status-20260828
