@@ -18,22 +18,12 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      - name: Materialize frontend and inspect persistence
+      - name: Inspect exact persistence code
         run: |
           node scripts/materialize-index.mjs
-          python - <<'PY'
-          from pathlib import Path
-          text=Path('public/index.html').read_text(errors='ignore')
-          terms=['localStorage','sessionStorage','holidayRecords','holidayCommunicationTasks','holidayContents','holidays','/api/state','signature','assin','salvar','save']
-          lines=text.splitlines()
-          hits=[]
-          for i,line in enumerate(lines):
-            low=line.lower()
-            if any(t.lower() in low for t in terms):
-              start=max(0,i-2); end=min(len(lines),i+3)
-              hits.append((i+1,'\n'.join(f'{j+1}: {lines[j]}' for j in range(start,end))))
-          print('TOTAL_HITS',len(hits))
-          for _,chunk in hits[:220]:
-            print('---')
-            print(chunk[:4000])
-          PY
+          echo '=== STORAGE CONSTANTS / API ==='
+          grep -n -E 'STORAGE_KEY|LEGACY_KEYS|/api/state|fetch\(' public/index.html | head -n 80 || true
+          echo '=== SAVE PATCH ==='
+          sed -n '5520,5685p' public/index.html
+          echo '=== HOLIDAY LOCAL PERSIST ==='
+          sed -n '4860,4905p' public/index.html
