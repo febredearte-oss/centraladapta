@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const file = "public/index.html";
 let html = readFileSync(file,"utf8");
-const marker = "holiday-d1-persistence-v2";
+const marker = "holiday-central-state-v3";
 if(html.includes(marker)) process.exit(0);
 
 const persistStart = html.indexOf("    function persistHolidayRecord(record){");
@@ -13,32 +13,34 @@ if(persistStart < 0 || persistEnd < 0) throw new Error("persistHolidayRecord nã
 const persistReplacement = `    async function persistHolidayRecord(record){
       const declaredBy = String(
         record.log_signer
+        || sessionStorage.getItem("central_adapta_declared_actor")
         || sessionStorage.getItem("central_adapta_declared_by")
         || ""
       ).trim();
       if(!declaredBy) return {isOk:false,error:"declared_by_required"};
 
       try{
-        const response = await fetch("/api/holiday-record",{
-          method:"PUT",
-          headers:{"content-type":"application/json"},
-          credentials:"same-origin",
-          body:JSON.stringify({record,declaredBy})
-        });
-        const result = await response.json().catch(()=>({}));
-        if(!response.ok) return {isOk:false,error:result.error||"save_failed",result};
+        const current = Array.isArray(state.holidayRecords) ? cloneHolidayData(state.holidayRecords) : [];
+        const index = current.findIndex(item => item?.feriado_id === record.feriado_id);
+        const stored = {...(index >= 0 ? current[index] : {}),...cloneHolidayData(record),log_signer:declaredBy};
+        if(index >= 0) current[index] = stored; else current.push(stored);
 
-        sessionStorage.setItem("central_adapta_declared_by",declaredBy);
-        state.holidayRecords = Array.isArray(result.holidayRecords)
-          ? cloneHolidayData(result.holidayRecords)
-          : state.holidayRecords;
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+        const gateway = window.__adaptaCentralState;
+        if(!gateway?.write) return {isOk:false,error:"central_state_not_ready"};
+        await gateway.write([
+          {path:["holidayRecords"],value:current,remove:false}
+        ],"Avisos e Feriados",declaredBy);
+
+        const fresh = gateway.getState?.();
+        if(fresh && Array.isArray(fresh.holidayRecords)){
+          state.holidayRecords = cloneHolidayData(fresh.holidayRecords);
+        }
         refreshWithoutCalendarRebuild();
         holidayDataHandler?.onDataChanged(cloneHolidayData(state.holidayRecords));
-        return {isOk:true,revision:result.revision,loggedChanges:result.loggedChanges};
+        return {isOk:true,revision:gateway.getRevision?.()||0};
       }catch(error){
-        console.error("Falha ao persistir feriado no D1",error);
-        return {isOk:false,error:"network_error"};
+        console.error("Falha ao persistir feriado no estado central",error);
+        return {isOk:false,error:String(error?.message||"central_write_failed")};
       }
     }
 `;
@@ -52,52 +54,27 @@ if(signatureStart < 0 || signatureEnd < 0) throw new Error("bloco de assinatura 
 const signatureReplacement = `      // Autoria declarada: rastreabilidade operacional, sem autenticação.
       const isImportantField = patch.expediente || patch.equipe_interna || patch.email_associados || patch.feed_editorial || patch.instagram || patch.equipe_acolhimento !== undefined || patch.equipe_expedicao !== undefined;
       if(isImportantField && !patch.log_signer){
-        let declared = String(sessionStorage.getItem("central_adapta_declared_by") || "").trim();
+        let declared = String(sessionStorage.getItem("central_adapta_declared_actor") || sessionStorage.getItem("central_adapta_declared_by") || "").trim();
         if(!declared){
           declared = String(window.prompt("Quem está registrando estas alterações?") || "").trim();
           if(!declared){
             showToast("Informe seu nome para registrar a alteração no histórico.");
             return false;
           }
-          sessionStorage.setItem("central_adapta_declared_by",declared);
         }
+        sessionStorage.setItem("central_adapta_declared_actor",declared);
+        sessionStorage.setItem("central_adapta_declared_by",declared);
         patch = {...patch,log_signer:declared};
       }
 
 `;
 html = html.slice(0,signatureStart) + signatureReplacement + html.slice(signatureEnd);
 
-const runtime = `
-<script id="${marker}">
-(() => {
-  const KEY="central_adapta_v40";
-  let hydrating=false;
-  async function hydrateHolidayRecords(){
-    if(hydrating) return;
-    hydrating=true;
-    try{
-      const response=await fetch("/api/holiday-records",{cache:"no-store",credentials:"same-origin"});
-      if(!response.ok) return;
-      const result=await response.json();
-      if(!Array.isArray(result.holidayRecords)) return;
-      state.holidayRecords=JSON.parse(JSON.stringify(result.holidayRecords));
-      if(Array.isArray(result.holidayCommunicationTasks)) state.holidayCommunicationTasks=JSON.parse(JSON.stringify(result.holidayCommunicationTasks));
-      if(Array.isArray(result.holidayContents)) state.holidayContents=JSON.parse(JSON.stringify(result.holidayContents));
-      try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}
-      try{refreshWithoutCalendarRebuild();}catch{}
-      try{holidayDataHandler?.onDataChanged(JSON.parse(JSON.stringify(state.holidayRecords)));}catch{}
-    }catch(error){ console.warn("Não foi possível sincronizar feriados do D1.",error); }
-    finally{hydrating=false;}
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",hydrateHolidayRecords,{once:true});
-  else hydrateHolidayRecords();
-  document.addEventListener("click",event=>{
-    if(event.target?.closest?.('[data-page="holidays"]')) setTimeout(hydrateHolidayRecords,30);
-  });
-})();
-</script>`;
+// Remove a hidratação exclusiva de feriados: o estado inteiro passa a ser carregado pelo gateway central.
+html = html.replace(/<script id="holiday-d1-persistence-v2">[\s\S]*?<\/script>\s*/g,"");
+const runtime = `<script id="${marker}">window.addEventListener("adapta:central-state",()=>{try{refreshWithoutCalendarRebuild()}catch{};try{holidayDataHandler?.onDataChanged(JSON.parse(JSON.stringify(state.holidayRecords||[])))}catch{}});</script>`;
 
 if(!html.includes("</body>")) throw new Error("public/index.html sem </body>");
 html = html.replace("</body>",runtime+"\n</body>");
-writeFileSync(file,html);
-console.log("Holiday D1 persistence + declared audit logging applied.");
+writeFileSync(file,html,"utf8");
+console.log("Holiday module routed through the unified Central state gateway.");
