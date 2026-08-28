@@ -1,0 +1,36 @@
+name: TEMP Holiday Diagnostic
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/temp-holiday-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read live holiday state
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          u='https://centraladapta.febredearte.workers.dev/api/state'
+          with urllib.request.urlopen(u, timeout=30) as r:
+              d=json.load(r)
+          s=d.get('state',{})
+          out={
+            'revision': d.get('revision'),
+            'updatedAt': d.get('updatedAt'),
+            'updatedBy': d.get('updatedBy'),
+            'holidays': s.get('holidays'),
+            'holidayRecords': s.get('holidayRecords'),
+            'holidayCommunicationTasks': s.get('holidayCommunicationTasks'),
+            'holidayContents': s.get('holidayContents'),
+            'activity_tail': (s.get('activity') or [])[-30:]
+          }
+          print(json.dumps(out, ensure_ascii=False, indent=2))
+          PY
