@@ -2,6 +2,8 @@ import baseWorker from "./worker-auto-seed.js";
 
 const IMPORT_PATH = "/api/recover-holiday-local";
 const RECORDS_PATH = "/api/holiday-records";
+const RECORD_PATH = "/api/holiday-record";
+const LOGS_PATH = "/api/holiday-logs";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -30,14 +32,18 @@ function mergeHolidayCalendarEntries(current, incoming){
   const local = asArray(incoming).filter(item => item && typeof item.id === "string" && item.id.startsWith("feriado-"));
   return base.concat(local);
 }
-async function requireCentralAuth(request, env, ctx){
-  const probeUrl = new URL("/api/session", request.url);
-  const probe = new Request(probeUrl.toString(), {method:"GET", headers:request.headers});
-  const response = await baseWorker.fetch(probe,env,ctx);
-  if(!response.ok) return {ok:false,response};
-  let session=null;
-  try { session=await response.clone().json(); } catch {}
-  return {ok:true,email:session?.email || "authenticated"};
+
+async function ensureHolidayLogSchema(env){
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS holiday_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    revision INTEGER NOT NULL,
+    feriado_id TEXT NOT NULL,
+    field_name TEXT NOT NULL,
+    before_value TEXT,
+    after_value TEXT,
+    declared_by TEXT NOT NULL,
+    changed_at TEXT NOT NULL
+  )`).run();
 }
 
 async function readCurrentState(env){
@@ -61,6 +67,99 @@ async function holidayRecords(env){
     holidayCommunicationTasks:asArray(current.state.holidayCommunicationTasks),
     holidayContents:asArray(current.state.holidayContents)
   });
+}
+
+const AUDITED_FIELDS = [
+  "expediente","horario_escala","equipe_interna","equipe_acolhimento","equipe_expedicao",
+  "email_associados","feed_editorial","instagram","observacao"
+];
+
+function logValue(value){
+  if(value === undefined) return null;
+  if(value === null) return "null";
+  if(typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
+async function saveHolidayRecord(request, env){
+  let body;
+  try { body = await request.json(); } catch { return json({error:"invalid_json"},400); }
+  const incoming = body?.record;
+  const declaredBy = String(body?.declaredBy || incoming?.log_signer || "").trim();
+  if(!validRecord(incoming)) return json({error:"invalid_record"},400);
+  if(!declaredBy) return json({error:"declared_by_required"},400);
+
+  await ensureHolidayLogSchema(env);
+  const current = await readCurrentState(env);
+  if(current.error) return current.error;
+
+  const currentRevision = Number(current.row.revision || 0);
+  const records = asArray(current.state.holidayRecords);
+  const index = records.findIndex(item => item?.feriado_id === incoming.feriado_id);
+  const before = index >= 0 ? records[index] : {};
+  const now = new Date().toISOString();
+  const stored = {
+    ...before,
+    ...clone(incoming),
+    feriado_id:incoming.feriado_id,
+    log_signer:declaredBy,
+    updated_at:now,
+    __backendId:incoming.__backendId || before.__backendId || incoming.feriado_id
+  };
+
+  const changes = AUDITED_FIELDS
+    .filter(field => JSON.stringify(before?.[field]) !== JSON.stringify(stored?.[field]))
+    .map(field => ({field,before:logValue(before?.[field]),after:logValue(stored?.[field])}));
+
+  if(index >= 0) records[index] = stored; else records.push(stored);
+  const nextState = clone(current.state);
+  nextState.holidayRecords = records;
+
+  const nextRevision = currentRevision + 1;
+  const serialized = JSON.stringify(nextState);
+  if(serialized.length > 1_500_000) return json({error:"state_too_large"},413);
+
+  const update = await env.DB.prepare(
+    "UPDATE app_state SET revision=?,state_json=?,updated_at=?,updated_by=? WHERE id=1 AND revision=?"
+  ).bind(nextRevision,serialized,now,`declared:${declaredBy}`,currentRevision).run();
+
+  if(!update.meta?.changes){
+    const latest = await readCurrentState(env);
+    return json({error:"revision_conflict",revision:Number(latest.row?.revision||0)},409);
+  }
+
+  const statements = [
+    env.DB.prepare(
+      "INSERT INTO state_history (revision,state_json,changed_at,changed_by) VALUES (?,?,?,?)"
+    ).bind(currentRevision,current.row.state_json,current.row.updated_at || now,current.row.updated_by || `declared:${declaredBy}`),
+    env.DB.prepare(
+      "DELETE FROM state_history WHERE id NOT IN (SELECT id FROM state_history ORDER BY id DESC LIMIT 50)"
+    )
+  ];
+  for(const change of changes){
+    statements.push(env.DB.prepare(
+      "INSERT INTO holiday_audit_log (revision,feriado_id,field_name,before_value,after_value,declared_by,changed_at) VALUES (?,?,?,?,?,?,?)"
+    ).bind(nextRevision,incoming.feriado_id,change.field,change.before,change.after,declaredBy,now));
+  }
+  await env.DB.batch(statements);
+
+  return json({
+    ok:true,
+    revision:nextRevision,
+    updatedAt:now,
+    updatedBy:`declared:${declaredBy}`,
+    record:stored,
+    holidayRecords:records,
+    loggedChanges:changes.length
+  });
+}
+
+async function holidayLogs(env){
+  await ensureHolidayLogSchema(env);
+  const rows = await env.DB.prepare(
+    "SELECT id,revision,feriado_id,field_name,before_value,after_value,declared_by,changed_at FROM holiday_audit_log ORDER BY id DESC LIMIT 200"
+  ).all();
+  return json({logs:rows.results || []});
 }
 
 async function importLocalHolidayState(request, env, actor){
@@ -125,15 +224,16 @@ async function importLocalHolidayState(request, env, actor){
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
-    if(url.pathname === RECORDS_PATH && request.method === "GET"){
-      const auth = await requireCentralAuth(request,env,ctx);
-      if(!auth.ok) return auth.response;
-      return holidayRecords(env);
-    }
+
+    // Por decisão de produto, feriados funcionam sem login: a autoria é declarada e auditada,
+    // não autenticada. O workspace continua podendo adotar autenticação em outras áreas depois.
+    if(url.pathname === RECORDS_PATH && request.method === "GET") return holidayRecords(env);
+    if(url.pathname === RECORD_PATH && request.method === "PUT") return saveHolidayRecord(request,env);
+    if(url.pathname === LOGS_PATH && request.method === "GET") return holidayLogs(env);
+
     if(url.pathname === IMPORT_PATH && request.method === "POST"){
-      const auth = await requireCentralAuth(request,env,ctx);
-      if(!auth.ok) return auth.response;
-      return importLocalHolidayState(request,env,auth.email);
+      // Mantido apenas para recuperação legada. Não é usado pelo fluxo normal novo.
+      return importLocalHolidayState(request,env,"declared-recovery");
     }
     return baseWorker.fetch(request,env,ctx);
   }
