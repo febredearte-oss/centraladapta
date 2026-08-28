@@ -1,0 +1,24 @@
+name: TEMP Check Holiday Map
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/temp-check-holiday-map.yml
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll map
+        run: |
+          set -e
+          for i in $(seq 1 24); do
+            code=$(curl -sS -o map.json -w '%{http_code}' --max-time 20 https://centraladapta.febredearte.workers.dev/__holiday-record-map-3ac91e || true)
+            if [ "$code" = "200" ]; then
+              cat map.json
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1
