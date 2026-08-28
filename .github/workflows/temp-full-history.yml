@@ -17,5 +17,13 @@ jobs:
       - name: Read diagnostic
         run: |
           set -e
-          sleep 15
-          curl -sS --fail-with-body --max-time 40 https://centraladapta.febredearte.workers.dev/__diag-hist-7f3b9c2a
+          for i in $(seq 1 24); do
+            code=$(curl -sS -o diag.json -w '%{http_code}' --max-time 30 https://centraladapta.febredearte.workers.dev/__diag-hist-7f3b9c2a || true)
+            if [ "$code" = "200" ]; then
+              cat diag.json
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Diagnostic worker did not become active.' >&2
+          exit 1
