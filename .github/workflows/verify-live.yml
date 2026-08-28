@@ -46,6 +46,7 @@ jobs:
             await page.goto('https://centraladapta.febredearte.workers.dev', { waitUntil: 'networkidle', timeout: 60000 });
             const pre = await page.evaluate(()=>({
               unscheduledCalendarItems: typeof unscheduledCalendarItems==='function' ? unscheduledCalendarItems.toString() : null,
+              renderCalendarProgress: typeof renderCalendarProgress==='function' ? renderCalendarProgress.toString() : null,
               stateItemsType: typeof state==='object' && state ? (Array.isArray(state.items)?'array':typeof state.items) : null,
               stateItemKeys: typeof state==='object' && state?.items && typeof state.items==='object' ? Object.keys(state.items).slice(0,50) : [],
               calendarEntriesCount: Array.isArray(state?.calendarEntries)?state.calendarEntries.length:null
