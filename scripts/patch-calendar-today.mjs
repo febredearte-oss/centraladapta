@@ -27,7 +27,9 @@ html = html.replace(openCalendarMarker, openCalendarReplacement);
 html = html.replaceAll("  fullCalendarInstance.rerenderEvents();", "  if(typeof fullCalendarInstance.rerenderEvents===\"function\")fullCalendarInstance.rerenderEvents();");
 html = html.replaceAll("  fullCalendarInstance.updateSize();", "  if(typeof fullCalendarInstance.updateSize===\"function\")fullCalendarInstance.updateSize();");
 
-const todayCss = `<style id="calendar-today-ux-v50">
+const todayCss = `<style id="calendar-today-ux-v51">
+#fullCalendar{--fc-today-bg-color:transparent!important}
+#fullCalendar .fc-day-today:not(.adapta-actual-today){background:transparent!important}
 #fullCalendar [role="gridcell"].adapta-other-month{background:#fbfcfb !important}
 #fullCalendar [role="gridcell"].adapta-other-month > *{opacity:.22 !important}
 #fullCalendar [role="gridcell"].adapta-actual-today{background:#edf4f0 !important;box-shadow:inset 0 0 0 2px #0A3426 !important;position:relative;z-index:1}
@@ -37,9 +39,9 @@ const todayCss = `<style id="calendar-today-ux-v50">
 </style>`;
 
 html = html.replace(/<style id="calendar-today-ux-v\d+">[\s\S]*?<\/style>/, "");
-if (!html.includes('id="calendar-today-ux-v50"')) html = html.replace("</head>", `${todayCss}</head>`);
+if (!html.includes('id="calendar-today-ux-v51"')) html = html.replace("</head>", `${todayCss}</head>`);
 
-const todayRuntime = `<script id="calendar-today-runtime-v50">
+const todayRuntime = `<script id="calendar-today-runtime-v51">
 (function(){
   const root=document.getElementById("fullCalendar");
   if(!root)return;
@@ -64,10 +66,17 @@ const todayRuntime = `<script id="calendar-today-runtime-v50">
     const current=visibleMonthKey();
     root.querySelectorAll('[role="gridcell"][data-date]').forEach(cell=>{const date=cell.getAttribute("data-date")||"";cell.classList.toggle("adapta-other-month",!!current&&!date.startsWith(current))});
   }
+  function clearClientToday(){
+    const key=todayKey();
+    root.querySelectorAll('.fc-day-today').forEach(cell=>{
+      if(!key||cell.getAttribute('data-date')!==key)cell.classList.remove('fc-day-today');
+    });
+  }
   function markActualToday(){
     root.querySelectorAll(".adapta-actual-today").forEach(cell=>cell.classList.remove("adapta-actual-today"));
     root.querySelectorAll(".adapta-today-label").forEach(label=>label.remove());
     const key=todayKey(); if(!key)return null;
+    clearClientToday();
     const cell=root.querySelector('[role="gridcell"][data-date="'+key+'"]'); if(!cell)return null;
     cell.classList.add("adapta-actual-today");
     const top=cell.firstElementChild;if(top){const label=document.createElement("span");label.className="adapta-today-label";label.textContent="HOJE";top.prepend(label)}
@@ -75,7 +84,7 @@ const todayRuntime = `<script id="calendar-today-runtime-v50">
   }
   function todayButton(){return [...root.querySelectorAll("button")].find(button=>button.textContent.trim().toLowerCase()==="hoje")||null}
   function enableTodayButton(){const button=todayButton();if(!button)return;button.disabled=false;button.removeAttribute("disabled");button.setAttribute("aria-disabled","false");button.style.opacity="1";button.style.cursor="pointer"}
-  function refresh(){markOtherMonths();markActualToday();enableTodayButton()}
+  function refresh(){markOtherMonths();clearClientToday();markActualToday();enableTodayButton()}
   async function goToday(){
     const key=await loadClock(); if(!key)return;
     if(typeof fullCalendarInstance?.gotoDate==="function") fullCalendarInstance.gotoDate(key);
@@ -94,7 +103,7 @@ const todayRuntime = `<script id="calendar-today-runtime-v50">
 </script>`;
 
 html = html.replace(/<script id="calendar-today-runtime-v\d+">[\s\S]*?<\/script>/, "");
-if (!html.includes('id="calendar-today-runtime-v50"')) html = html.replace("</body>", `${todayRuntime}</body>`);
+if (!html.includes('id="calendar-today-runtime-v51"')) html = html.replace("</body>", `${todayRuntime}</body>`);
 
 writeFileSync(FILE, html, "utf8");
-console.log("Central Adapta v50: calendário usa relógio oficial do Worker em America/Fortaleza.");
+console.log("Central Adapta v51: hoje usa Worker e destaque nativo do relógio do cliente é neutralizado.");
