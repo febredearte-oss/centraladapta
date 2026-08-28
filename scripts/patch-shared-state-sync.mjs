@@ -23,9 +23,20 @@ const script=`<script id="${marker}">
 
   function clone(value){return value==null?value:JSON.parse(JSON.stringify(value))}
   function parse(text){try{return JSON.parse(text)}catch{return null}}
-  function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+  function canonical(value,path=[]){
+    if(Array.isArray(value))return value.map((item,index)=>canonical(item,[...path,index]));
+    if(!value||typeof value!=="object")return value;
+    const out={};
+    for(const [key,item] of Object.entries(value)){
+      if(path[0]==="holidayContents"&&key==="generatedAt")continue;
+      if(path[0]==="calendarEntries"&&key==="updatedAt"&&String(value.id||"").startsWith("feriado-"))continue;
+      out[key]=canonical(item,[...path,key]);
+    }
+    return out;
+  }
+  function same(a,b,path=[]){return JSON.stringify(canonical(a,path))===JSON.stringify(canonical(b,path))}
   function diff(before,after,path=[],depth=0,out=[]){
-    if(out.length>=300||same(before,after))return out;
+    if(out.length>=300||same(before,after,path))return out;
     if(depth>=5||Array.isArray(before)||Array.isArray(after)||before===null||after===null||typeof before!=="object"||typeof after!=="object"){
       out.push({path,value:after,remove:after===undefined});return out;
     }
@@ -181,6 +192,7 @@ const script=`<script id="${marker}">
     applyServer,
     getRevision:()=>lastRevision,
     getState:()=>clone(serverState),
+    canonical:value=>canonical(value),
     write:async(patches,area=currentArea(),declaredBy=actor())=>{if(!declaredBy)throw new Error("declared_by_required");await enqueue(patches,area,declaredBy);return window.__adaptaLastRemoteState},
     ready:()=>bootstrapped
   };
@@ -196,4 +208,4 @@ html=html.replace(/<script id="shared-state-sync-v[123]">[\s\S]*?<\/script>\s*/g
 html=html.replace(/<script id="central-state-architecture-v4">[\s\S]*?<\/script>\s*/g,"");
 html=html.replace("</body>",script+"\n</body>");
 writeFileSync(FILE,html,"utf8");
-console.log("Central Adapta: D1 agora é a fonte única de estado; localStorage funciona apenas como cache de compatibilidade.");
+console.log("Central Adapta: D1 é a fonte única; timestamps derivados de renderização não geram alterações operacionais.");
