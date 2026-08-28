@@ -1,0 +1,662 @@
+
+=== decisões @ 123439 ===
+
+</section>
+<section class="page" id="page-contents">
+<div class="contents-top">
+<div><h1>Conteúdos</h1><p>Banco editorial, produção e posts realizados em uma única página.</p></div>
+<div class="contents-actions">
+<select aria-label="Filtrar por linha editorial" class="control-select" id="contentLineFilter"></select>
+<button class="secondary-button" id="openGuide">Guia e Biblioteca</button>
+</div>
+</div>
+<nav class="stage-tabs">
+<button class="active" data-view="ideas"><span>Banco de ideias</span><b>0</b></button>
+<button data-view="queue"><span>Na fila</span><b>0</b></button>
+<button data-view="editing"><span>Em edição</span><b>0</b></button>
+<button data-view="scheduled"><span>Agendados</span><b>0</b></button>
+<button data-view="published"><span>Posts realizados</span><b>0</b></button>
+</nav><div class="base-filters">
+<button class="active" data-base="">Todos</button>
+<button data-base="Base Neutra">Base Neutra</button>
+<button data-base="Base Criativa">Base Criativa</button>
+<button data-base="Informativos feriados">Informativos feriados</button></div>
+<section class="content-view active" id="view-ideas">
+<div class="control-bar">
+<label><input id="selectAll" type="checkbox"/>Selecionar todos os visíveis</label>
+<span class="selection-count" id="selectionCount">0 selecionados</span>
+<select class="control-select" id="bulkStage">
+<option value="">Mover para…</option>
+<option value="ideas">Banco de ideias</option>
+<option value="queue">Na fila</option>
+<option value="editing">Em edição</option>
+<option value="scheduled">Agendado</option>
+<option value="published">Publicado</option>
+</select>
+<button class="control-apply" id="applyBulk">Aplicar</button>
+</div>
+<div class="idea-list" id="ideaList"></div>
+</section>
+<section class="content-view" id="view-workflow">
+<div class="control-bar">
+<label><input id="selectAllWorkflow" type="checkbox"/>Selecionar todos</label>
+<span class="selection-count" id="selectionCountWorkflow">0 selecionados</span>
+<select class="control-select" id="bulkStageWorkflow">
+<option value="">Mover para…</option>
+<option value="ideas">Banco de ideias</option>
+<option value="queue">Na fila</option>
+<option value="editing">Em edição</option>
+<option value="scheduled">Agendado</option>
+<option value="published">Publicado</option>
+</select>
+<button class="control-apply" id="applyBulkWorkflow">Aplicar</button>
+</div>
+<div class="workflow-list" id="workflowList"></div>
+</section>
+<section class="content-view" id="view-published">
+<div class="published-list" id="publishedList"></div>
+</section>
+</section>
+<section class="page" id="page-calendar">
+<div class="page-head">
+<div>
+<span class="eyebrow">Planejamento editorial</span>
+<h1>Calendário</h1>
+<p>Calendário FullCalendar conectado aos mesmos conteúdos, etapas e linhas editoriais da Central.</p>
+</div>
+</div>
+<section class="calendar-progress">
+<div class="progress-copy">
+<strong>Ritmo editorial · <span id="progressSlots">0 de 0 slots preenchidos</span></strong>
+<span>Meta atual: <span id="capacityLabel">3</span> slots principais por semana, incluindo conteúdos, linhas editoriais e informativos.</span>
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+<div class="progress-percent" id="progressPercent">0%</div>
+</section>
+<div class="calendar-shell">
+<div class="calendar-workspace">
+<div class="calendar-loading" id="calendarStatus">Carregando calendário…</div>
+<div hidden="" id="fullCalendar"></div>
+<div class="calendar-source-note">Calendário: FullCalendar 7</div>
+</div>
+<aside class="calendar-sidebar">
+<span class="eyebrow">Arraste para o calendário</span>
+<h3>Conteúdos e slots sem data</h3>
+<p>Solte um conteúdo ou slot de linha editorial em um dia. As reservas já definidas também ocupam a capacidade semanal.</p>
+<div class="calendar-bank-tools">
+<div aria-label="Devolver item ao banco sem data" class="calendar-bank-dropzone" id="calendarBankDropzone" role="region">
+<strong>Devolver ao banco</strong>
+<span>Arraste um item do calendário para cá.</span>
+</div>
+<button class="calendar-undo-button" disabled="" id="calendarUndoButton" title="Desfazer a última alteração do calendário" type="button">Desfazer · Ctrl Z</button>
+</div><input class="unscheduled-search" id="unscheduledSearch" placeholder="Buscar conteúdo" type="search"/>
+<div class="unscheduled-list" id="unscheduledList"></div>
+</aside>
+</div>
+</section>
+<section class="page" id="page-lines">
+<div class="page-head">
+<div>
+<span class="eyebrow">Estrutura editorial</span>
+<h1>Linhas editoriais</h1>
+<p>As linhas organizam famílias de conteúdo, recorrências e comportamento no calendário sem criar outro banco.</p>
+</div>
+<div class="lines-toolbar">
+<button class="primary-button" id="newLine">Nova linha editorial</button>
+</div>
+</div>
+<div class="lines-grid" id="linesGrid"></div>
+</section>
+<section class="page" id="page-holidays">
+<div class="page-head">
+<div>
+<span class="eyebrow">Expediente e comunicação</span>
+<h1>Avisos e Feriados</h1>
+<p>As decisões da diretoria alimentam o calendário operacional e liberam as ações de comunicação.</p>
+</div>
+</div>
+<div aria-label="Sistema de expediente e comunicação de feriados" class="native-module-host" id="feriadosNativeHost"></div>
+</section>
+<section class="page" id="page-design">
+<div class="sv-manual">
+  <div class="page-head sv-head">
+    <div><span class="eyebrow">Identidade Adapta</span><p>Assinaturas oficiais da marca. Escolha primeiro a proporção adequada ao espaço e depois a versão correspondente ao fundo.</p></div>
+  </div>
+  <div class="sv-rule"><svg class="sv-inline-logo" role="img" aria-label="Símbolo oficial +AD no escudo" width="489.19pt" height="552.54pt" viewBox="0 0 489.19 552.54" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="adapta-svg-4-a">
+<path d="m0 0.22656h488.38v551.62h-488.38z"/>
+</clipPath>
+</defs>
+<g clip-path="url(#adapta-svg-4-a)">
+<path d="m488.38 394.06v-236.04c0-14.211-7.582-27.344-19.887-34.449l-204.41-118.02c-12.309-7.1055-27.469-7.1055-39.777 0l-204.41 118.02c-12.305 7.1055-19.887 20.238-19.887 34.449v236.04c0 14.211 7.582 27.344 19.887 34.449l204.41 118.02c12.309 7.1055 27.469 7.1055 39.777 0l204.41-118.02c12.305-7.1055 19.887-20.238 19.887-34.449" fill="#093325"/>
+</g>
+<path d="m406.95 299.3c-4.8945 19.301-17.828 34.531-36.039 42.297-7.8008 3.3828-16.371 6-24.867 7.0781l-53.023-144.59 43.461 0.84766c11.555 0 22.418 2.1523 32.902 6.3828 18.898 7.6133 32.363 23.148 37.488 42.914 3.75 14.766 3.8281 30.227 0.078125 45.07m-201.69 3.1523 31.297-92.598c0.22656-1.1523 0.6875-2 1.4531-2.6133 0.76563-0.69531 1.7578-1 2.832-1 1.1445 0 2.0625 0.23047 2.8281 0.84375 0.76562 0.53906 1.3789 1.4609 1.7617 2.7695l29.457 92.598zm243.7-77.293c-10.18-25.609-29.535-45.527-54.633-56.449-14.078-6.0742-28.77-9.3828-44.148-10.844h-112.17l-9.7188 0.46094c-6.043 1.2305-11.629 3.4609-16.832 6.5352-8.5703 5.2305-14.77 12.922-18.441 23.074l-60.293 165.2-14 38.379h57.766l14.539-42.992h98.016l13.926 42.992h58.836l12.629 0.074219c7.8008-1.9961 15.301-4.6133 22.57-8.1523 23.871-11.074 42.312-30.531 51.875-55.141 5.7383-13.844 7.957-28.223 9.1836-43.375v-15.922c-0.99609-14.996-3.5234-29.684-9.1055-43.836" fill="#fff"/>
+<path d="m69.152 323.09v-34.496c0-1.9961-1.6094-3.6133-3.5977-3.6133h-35.047c-1.9883 0-3.5977-1.6211-3.5977-3.6172v-24.945c0-1.9961 1.6094-3.6133 3.5977-3.6133h35.047c1.9883 0 3.5977-1.6211 3.5977-3.6172v-34.492c0-2 1.6094-3.6172 3.5977-3.6172h27.301c1.9883 0 3.5977 1.6172 3.5977 3.6172v34.492c0 1.9961 1.6094 3.6172 3.5977 3.6172h35.051c1.9844 0 3.5938 1.6172 3.5938 3.6133v24.945c0 1.9961-1.6094 3.6172-3.5938 3.6172h-35.051c-1.9883 0-3.5977 1.6172-3.5977 3.6133v34.496c0 1.9961-1.6094 3.6172-3.5977 3.6172h-27.301c-1.9883 0-3.5977-1.6211-3.5977-3.6172" fill="#8aa99b"/>
+</svg>
+<div><p>Não separar, reconstruir ou recombinar esses elementos. Use sempre uma das assinaturas oficiais abaixo.</p></div></div>
+  <section class="sv-section"><div class="sv-section-intro"><span class="eyebrow">Assinaturas oficiais</span><h3>Primeiro: escolha pelo espaço</h3><p>Da versão mais ampla à mais reduzida: horizontal → vertical → compacta → ultra compacta.</p></div>
+<article class="sv-signature-row">
+  <div class="sv-signature-copy"><span class="sv-step">01</span><h4>Horizontal</h4><p>Para áreas largas, cabeçalhos, apresentações, faixas e assinaturas institucionais.</p></div>
+  <div class="sv-variants">
+    <div class="sv-variant sv-light"><span class="sv-variant-label">Fundo claro</span><div class="sv-logo-stage"><svg class="sv-inline-logo" role="img" aria-label="Assinatura Horizontal da Adapta para fundo claro" width="2059.1pt" height="531.77pt" viewBox="0 0 2059.1 531.77" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="adapta-svg-5-b">
+<path d="m0 0.0039062h471v531.53h-471z"/>
+</clipPath>
+<clipPath id="adapta-svg-5-a">
+<path d="m2002 413h56.156v59h-56.156z"/>
+</clipPath>
+</defs>
+<g clip-path="url(#adapta-svg-5-b)">
+<path d="m470.99 378.74v-225.94c0-14.227-7.5898-27.375-19.91-34.488l-195.67-112.97c-12.32-7.1133-27.5-7.1133-39.824 0l-195.67 112.97c-12.32 7.1133-19.91 20.262-19.91 34.488v225.94c0 14.227 7.5898 27.375 19.91 34.488l195.67 112.97c12.324 7.1172 27.504 7.1172 39.824 0l195.67-112.97c12.32-7.1133 19.91-20.262 19.91-34.488" fill="#093325"/>
+</g>
+<path d="m392.46 288.19c-4.7227 18.617-17.191 33.305-34.754 40.793-7.5273 3.2656-15.789 5.7891-23.98 6.8242l-51.137-139.44 41.914 0.81641c11.141 0 21.617 2.0781 31.727 6.1562 18.227 7.3438 31.215 22.324 36.16 41.387 3.6133 14.238 3.6875 29.148 0.070312 43.461m-194.51 3.043 30.18-89.301c0.22266-1.1094 0.66406-1.9258 1.4023-2.5195 0.73828-0.66797 1.6992-0.96484 2.7305-0.96484 1.1055 0 1.9922 0.22266 2.7305 0.81641 0.73828 0.51953 1.3281 1.4102 1.6992 2.668l28.406 89.301zm235.02-74.539c-9.8125-24.699-28.48-43.91-52.684-54.441-13.578-5.8594-27.746-9.0469-42.578-10.457h-108.18l-9.3711 0.44531c-5.8281 1.1875-11.215 3.3359-16.234 6.3047-8.2617 5.043-14.238 12.461-17.781 22.25l-58.145 159.31-13.504 37.012h55.711l14.02-41.461h94.523l13.43 41.461h56.742l12.176 0.074218c7.5273-1.9297 14.758-4.4492 21.77-7.8594 23.023-10.684 40.805-29.445 50.027-53.18 5.5352-13.352 7.6758-27.223 8.8555-41.832v-15.355c-0.95703-14.461-3.3945-28.625-8.7812-42.273" fill="#fff"/>
+<path d="m66.691 311.14v-33.266c0-1.9258-1.5547-3.4883-3.4688-3.4883h-33.801c-1.918 0-3.4688-1.5586-3.4688-3.4844v-24.059c0-1.9258 1.5508-3.4844 3.4688-3.4844h33.801c1.9141 0 3.4688-1.5625 3.4688-3.4883v-33.266c0-1.9258 1.5508-3.4883 3.4688-3.4883h26.328c1.918 0 3.4688 1.5625 3.4688 3.4883v33.266c0 1.9258 1.5547 3.4883 3.4688 3.4883h33.805c1.9141 0 3.4688 1.5586 3.4688 3.4844v24.059c0 1.9258-1.5547 3.4844-3.4688 3.4844h-33.805c-1.9141 0-3.4688 1.5625-3.4688 3.4883v33.266c0 1.9258-1.5508 3.4883-3.4688 3.4883h-26.328c-1.918 0-3.4688-1.5625-3.4688-3.4883" fill="#8aa99b"/>
+<path d="m539.39 423.34-11.18 27.715h22.516zm20 48.344-5.8281-14.016h-28.031l-5.8242 14.016h-7.7148l23.934-58.422h6.7695l24.566 58.422z" fill="#093325"/>
+<path d="m622.89 472.47c-4.3281 0-8.1094-0.74609-11.336-2.2031-3.1484-1.5742-5.6719-3.7812-7.5586-6.6133-1.8125-2.8359-2.6758-6.1406-2.6758-9.9219h7.5586c0 3.7031 1.2969 6.5352 3.9336 8.5039 2.6016 2.0078 5.9844 2.9922 10.078 2.9922 2.4023 0 4.6055-0.35547 6.6172-1.1016 1.9648-0.82812 3.5391-1.9688 4.7227-3.4648 1.1406-1.5742 1.7305-3.3867 1.7305-5.5117 0-2.2852-0.70703-4.0938-2.0469-5.3555-1.375-1.2578-3.1484-2.2031-5.3516-2.832-2.207-0.71094-4.5664-1.418-7.0859-2.0469-2.3242-0.51172-4.5703-1.1055-6.7734-1.7344-2.2031-0.70703-4.25-1.6133-6.1406-2.6758-1.8906-1.1406-3.4258-2.6758-4.5664-4.5664-1.0625-1.8906-1.5742-4.2539-1.5742-7.0859 0-5.1211 1.7695-9.1367 5.3516-11.969 3.6641-2.9141 8.5039-4.4102 14.488-4.4102 6.0625 0 10.867 1.5742 14.332 4.7227 3.4609 3.1523 5.1953 7.3633 5.1953 12.602h-7.2461c0-3.2305-1.1797-5.75-3.4609-7.5586-2.3242-1.7734-5.2773-2.6797-8.8203-2.6797-3.582 0-6.5742 0.78906-8.9766 2.3633-2.3203 1.5742-3.4648 3.7383-3.4648 6.457 0 2.2031 0.63281 3.9375 1.8906 5.1953 1.3398 1.1797 3.0703 2.125 5.1953 2.8359 2.207 0.62891 4.5703 1.2188 7.0898 1.7305 2.2812 0.62891 4.6055 1.3398 6.9258 2.0469 2.2852 0.75 4.4102 1.6914 6.3008 2.8359 1.8906 1.1797 3.3867 2.7539 4.5664 4.7227 1.1406 1.8906 1.7305 4.3711 1.7305 7.4023 0 3.6992-0.90625 6.8477-2.6758 9.4492-1.8125 2.5195-4.25 4.4883-7.4023 5.8242-3.1484 1.3398-6.6914 2.0469-10.551 2.0469" fill="#093325"/>
+<path d="m701.5 472.47c-4.3281 0-8.1094-0.74609-11.336-2.2031-3.1484-1.5742-5.6719-3.7812-7.5586-6.6133-1.8125-2.8359-2.6758-6.1406-2.6758-9.9219h7.5586c0 3.7031 1.2969 6.5352 3.9336 8.5039 2.6016 2.0078 5.9844 2.9922 10.078 2.9922 2.4023 0 4.6055-0.35547 6.6172-1.1016 1.9648-0.82812 3.543-1.9688 4.7227-3.4648 1.1406-1.5742 1.7305-3.3867 1.7305-5.5117 0-2.2852-0.70703-4.0938-2.0469-5.3555-1.375-1.2578-3.1484-2.2031-5.3516-2.832-2.207-0.71094-4.5664-1.418-7.0859-2.0469-2.3242-0.51172-4.5703-1.1055-6.7734-1.7344-2.2031-0.70703-4.25-1.6133-6.1406-2.6758-1.8906-1.1406-3.4258-2.6758-4.5664-4.5664-1.0625-1.8906-1.5742-4.2539-1.5742-7.0859 0-5.1211 1.7695-9.1367 5.351
+
+=== decisões @ 251873 ===
+ade</span></div>\n<div class=\"block\"><h3>Direção visual</h3><p>Colagem leve com objetos e cenas cotidianas. Humor discreto e identificação. Pode usar pequenos textos manuscritos e recortes.</p></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><div>COISAS QUE SÓ QUEM É PACIENTE ENTENDE.</div></div><div class=\"card\"><b>Card 2</b><div>Ter uma dúvida super específica exatamente depois da consulta.</div></div><div class=\"card\"><b>Card 3</b><div>Criar um sistema próprio para não esquecer horários, perguntas e observações.</div></div><div class=\"card\"><b>Card 4</b><div>Aprender um vocabulário que meses atrás parecia outra língua.</div></div><div class=\"card\"><b>Card 5</b><div>E descobrir que cuidado também é aprender a observar a própria rotina.</div></div></div></div><div class=\"block\"><h3>Legenda</h3><div class=\"caption\">Tem coisas que aparecem no tratamento e quase nunca viram assunto.\n\nDúvidas que surgem depois, sistemas improvisados de organização, termos novos, pequenas adaptações de rotina.\n\nSe você é paciente, qual dessas situações mais parece com você?</div></div>\n</div>"}, {"id": "post-16", "number": 16, "title": "Perguntas que pacientes experientes também fazem", "base": "Base Neutra", "tags": ["Base Neutra", "Carrossel · 4 cards", "Comunidade"], "bodyHtml": "<div class=\"post-body\">\n<div class=\"meta\"><span class=\"tag batch-tag\">Base Neutra</span><span class=\"tag\">Carrossel · 4 cards</span><span class=\"tag\">Comunidade</span></div>\n<div class=\"block\"><h3>Direção visual</h3><p>Balões de mensagem, caderno ou mural de perguntas. Visual mais maduro, sem voltar ao discurso de início de tratamento.</p></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><div>PACIENTE EXPERIENTE<br/>TAMBÉM TEM DÚVIDA.</div></div><div class=\"card\"><b>Card 2</b><div>“Isso mudou ou eu que passei a perceber melhor?”</div></div><div class=\"card\"><b>Card 3</b><div>“O que vale registrar antes da próxima conversa?”</div></div><div class=\"card\"><b>Card 4</b><div>Experiência não elimina pergunta.<br/><br/>Às vezes, ela melhora a pergunta.</div></div></div></div><div class=\"block\"><h3>Legenda</h3><div class=\"caption\">Conhecer melhor o próprio tratamento não significa deixar de ter dúvidas.\n\nCom o tempo, as perguntas podem mudar de lugar: saem do básico e passam a acompanhar percepção, rotina, contexto e continuidade.\n\nPerguntar continua sendo parte do cuidado.</div></div>\n</div>"}, {"id": "post-17", "number": 17, "title": "Cannabis medicinal também é acesso", "base": "Base Neutra", "tags": ["Base Neutra", "Carrossel · 5 cards", "Posicionamento"], "bodyHtml": "<div class=\"post-body\">\n<div class=\"meta\"><span class=\"tag batch-tag\">Base Neutra</span><span class=\"tag\">Carrossel · 5 cards</span><span class=\"tag\">Posicionamento</span></div>\n<div class=\"block\"><h3>Direção visual</h3><p>Tipografia protagonista + fotografia brasileira de cidade, associação, comunidade e cuidado. Pode usar cartaz, lambe ou intervenção urbana.</p></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><div>CANNABIS MEDICINAL<br/>TAMBÉM É ACESSO.</div></div><div class=\"card\"><b>Card 2</b><div>Acesso à informação.</div></div><div class=\"card\"><b>Card 3</b><div>Acesso à orientação.</div></div><div class=\"card\"><b>Card 4</b><div>Acesso a redes de cuidado e comunidade.</div></div><div class=\"card\"><b>Card 5</b><div>Porque falar de tratamento sem falar de quem consegue chegar até ele deixa parte da história de fora.</div></div></div></div><div class=\"block\"><h3>Legenda</h3><div class=\"caption\">Cannabis medicinal não é apenas uma conversa sobre substâncias, produtos ou prescrições.\n\nTambém é uma conversa sobre informação, orientação, rede, custo, território e possibilidade real de acesso.\n\nCuidado só existe por inteiro quando consegue chegar às pessoas.</div></div>\n</div>"}, {"id": "post-18", "number": 18, "title": "Informação também é cuidado", "base": "Base Neutra", "tags": ["Base Neutra", "Estático + motion", "Posicionamento"], "bodyHtml": "<div class=\"post-body\">\n<div class=\"meta\"><span class=\"tag batch-tag\">Base Neutra</span><span class=\"tag\">Estático + motion</span><span class=\"tag\">Posicionamento</span></div>\n<div class=\"block\"><h3>Direção visual</h3><p>Cartaz tipográfico, recorte urbano ou composição com luz projetada. Simples e forte.</p></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Arte</b><div>INFORMAÇÃO<br/>TAMBÉM É CUIDADO.<br/><br/>Porque entender melhor ajuda a perguntar melhor, decidir melhor e participar do próprio tratamento.</div></div></div></div><div class=\"block\"><h3>Legenda</h3><div class=\"caption\">Informação não substitui acompanhamento, mas muda a qualidade da conversa.\n\nQuando uma pessoa entende melhor os termos, o fluxo e o próprio contexto, ela consegue participar de forma mais ativa das decisões que envolvem seu cuidado.\n\nEducação também faz parte do acesso.</div></div>\n</div>"}, {"id": "post-19", "number": 19, "title": "Nem todo conteúdo sobre cannabis precisa falar de óleo", "base": "Base Neutra", "tags": ["Base Neutra", "Carrossel · 5 cards", "Leves e compartilháveis"], "bodyHtml": "<div class=\"post-body\">\n<div class=\"meta\"><span class=\"tag batch-tag\">Base Neutra</span><span class=\"tag\">Carrossel · 5 cards</span><span class=\"tag\">Leves e compartilháveis</span></div>\n<div class=\"block\"><h3>Direção visual</h3><p>Colagem editorial mais leve com pessoas, cidade, planta, conversa, cultura, comida, livros e cotidiano. Visual dinâmico e menos clínico.</p></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><div>NEM TODO CONTEÚDO SOBRE CANNABIS<br/>PRECISA FALAR DE ÓLEO.</div></div><div class=\"card\"><b>Card 2</b><div>Pode falar de acesso.</div></div><div class=\"card\"><b>Card 3</b><div>De cuidado, cultura, ciência e política.</div></div><div class=\"card\"><b>Card 4</b><div>De rotina, comunidade e informação.</div></div><div class=\"card\"><b>Card 5</b><div>A planta atravessa muitos assuntos.<br/><br/>A conversa também pode.</div></div></div></div><div class=\"block\"><h3>Legenda</h3><div class=\"caption\">Quando cannabis aparece só como produto, uma parte enorme do tema desaparece.\n\nExistem histórias de cuidado, ciência, cultura, política, acesso, território, comunidade e cotidiano atravessando essa conversa.\n\nA planta não cabe em um único tipo de post — nem em um único enquadramento.</div></div>\n</div>"}, {"id": "post-20", "number": 20, "title": "Se o cuidado fosse um kit, o que teria dentro?", "base": "Base Neutra", "tags": ["Base Neutra", "Carrossel · 6 cards", "Leves e compartilháveis"], "bodyHtml": "<div class=\"post-body\">\n<div class=\"meta\"><span class=\"tag batch-tag\">Base Neutra</span><span class=\"tag\">Carrossel · 6 cards</span><span class=\"tag\">Leves e compartilháveis</span></div>\n<div class=\"block\"><h3>Direção visual</h3><p>Still life / flat lay de objetos simbólicos: caderno, celular, água, agenda, folha, fone, chave e documento. Pode usar colagem e labels.</p></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><div>SE O CUIDADO FOSSE UM KIT,<br/>O QUE TERIA DENTRO?</div></div><div class=\"card\"><b>Card 2</b><div>INFORMAÇÃO<br/><br/>Pra entender melhor o caminho.</div></div><div class=\"card\"><b>Card 3</b><div>ROTINA<br/><br/>Pra transformar orientação em algo possível no dia a dia.</div></div><div class=\"card\"><b>Card 4</b><div>REGISTRO<br/><br/>Pra lembrar o que aconteceu entre uma conversa e outra.</div></div><div class=\"card\"><b>Card 5</b><div>REDE<br/><br/>Pra não precisar atravessar tudo sozinho.</div></div><div class=\"card\"><b>Card 6</b><div>E ESPAÇO PARA PERGUNTAR.<br/><br/>Porque cuidado também se constrói em conversa.</div></div></div></div><div class=\"block\"><h3>Legenda</h3><div class=\"caption\">Cuidado não cabe em um único objeto — mas algumas coisas ajudam a imaginar do que ele é feito.\n\nInformação, rotina, registro, rede e espaço para perguntar aparecem de formas diferentes ao longo do caminho.\n\nSe você montasse esse kit, o que acrescentaria?</div></div>\n</div>"}, {"id": "post-21", "number": 21, "title": "Seu cérebro está com quantas abas abertas agora?", "base": "Base Criativa", "tags": ["Base Criativa", "Carrossel", "Cotidiano", "Humor leve", "Compartilhável"], "bodyHtml": "<div class=\"post-body\"><div class=\"meta\"><span class=\"tag batch-tag\">Base Criativa</span><span class=\"tag\">Carrossel</span><span class=\"tag\">Cotidiano</span><span class=\"tag\">Humor leve</span><span class=\"tag\">Compartilhável</span></div><div class=\"block\"><h3>Formato</h3><div class=\"caption\">Carrossel de 6 cards</div></div><div class=\"block\"><h3>Objetivo</h3><div class=\"caption\">Falar de sobrecarga mental com linguagem reconhecível e atual, sem transformar o post em palestra sobre produtividade.</div></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><p>SEU CÉREBRO ESTÁ COM QUANTAS ABAS ABERTAS AGORA?</p></div><div class=\"card\"><b>Card 2</b><p>A mensagem que você ainda não respondeu.</p></div><div class=\"card\"><b>Card 3</b><p>A consulta que precisa marcar.</p></div><div class=\"card\"><b>Card 4</b><p>A coisa importante que você jurou que lembraria sem anotar.</p></div><div class=\"card\"><b>Card 5</b><p>E uma música tocando no fundo sem ninguém ter dado play.</p></div><div class=\"card\"><b>Card 6</b><p>Fecho: talvez o primeiro cuidado de hoje seja fechar uma aba.</p></div></div></div><div class=\"block\"><h3>Legenda sugerida</h3><div class=\"caption\">Tem dia em que a cabeça parece navegador com 27 abas abertas — e uma delas está tocando áudio, mas você não sabe qual.\n\nNem tudo precisa ser resolvido agora. Escolher uma coisa, anotar outra e deixar o restante para depois também é organização.</div></div><div class=\"block\"><h3>Direção visual</h3><div class=\"caption\">Não reproduzir computador com post-its. Criar outra metáfora de excesso digital: abas, notificações, áudios, listas, papéis, telas sobrepostas ou objetos cotidianos acumulados. Pode misturar fotografia e interface.</div></div></div>"}, {"id": "post-22", "number": 22, "title": "O que você assiste também te atravessa", "base": "Base Criativa", "tags": ["Base Criativa", "Carrossel", "Cultura digital", "Reflexão", "Compartilhável"], "bodyHtml": "<div class=\"post-body\"><div class=\"meta\"><span class=\"tag batch-tag\">Base Criativa</span><span class=\"tag\">Carrossel</span><span class=\"tag\">Cultura digital</span><span class=\"tag\">Reflexão</span><span class=\"tag\">Compartilhável</span></div><div class=\"block\"><h3>Formato</h3><div class=\"caption\">Carrossel de 5 cards</div></div><div class=\"block\"><h3>Objetivo</h3><div class=\"caption\">Falar de consumo de mídia e atenção sem tom professoral.</div></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><p>O QUE VOCÊ ASSISTE TAMBÉM TE ATRAVESSA.</p></div><div class=\"card\"><b>Card 2</b><p>Tem conteúdo que informa.</p></div><div class=\"card\"><b>Card 3</b><p>Tem conteúdo que inspira.</p></div><div class=\"card\"><b>Card 4</b><p>E tem conteúdo que deixa a cabeça em modo alerta sem você perceber.</p></div><div class=\"card\"><b>Card 5</b><p>Fecho: sua atenção também merece curadoria.</p></div></div></div><div class=\"block\"><h3>Legenda sugerida</h3><div class=\"caption\">O feed parece leve porque passa rápido. Mas imagem, som, notícia, comparação e repetição continuam entrando.\n\nNão é sobre viver numa bolha. É só perceber o que você consome e como aquilo deixa você depois.</div></div><div class=\"block\"><h3>Direção visual</h3><div class=\"caption\">Criar nova solução para a ideia de olhar/consumo: reflexos, telas, luz de monitor, projeções, recortes de olhos, janelas, camadas ou imagens parcialmente ocultas. Não copiar céu com recorte de rosto.</div></div></div>"}, {"id": "post-23", "number": 23, "title": "CBD e CBA parecem primos. Mas não são gêmeos.", "base": "Base Criativa", "tags": ["Base Criativa", "Carrossel", "Educação canábica", "Ciência", "Curiosidade"], "bodyHtml": "<div class=\"post-body\"><div class=\"meta\"><span class=\"tag batch-tag\">Base Criativa</span><span class=\"tag\">Carrossel</span><span class=\"tag\">Educação canábica</span><span class=\"tag\">Ciência</span><span class=\"tag\">Curiosidade</span></div><div class=\"block\"><h3>Formato</h3><div class=\"caption\">Carrossel de 7 cards</div></div><div class=\"block\"><h3>Objetivo</h3><div class=\"caption\">Explicar de forma acessível a diferença geral entre dois canabinoides sem transformar o conteúdo em aula pesada.</div></div><div class=\"block\"><h3>Cards</h3><div class=\"cards\"><div class=\"card\"><b>Card 1</b><p>CBD E CBA PARECEM PRIMOS.</p><p>MAS NÃO SÃO GÊMEOS.</p></div><div class=\"card\"><b>Card
+
+=== FUNCTION ===
+function centralHolidayRecord(id){
+  return state.holidayRecords.find(record=>record.feriado_id===id)||null;
+}
+
+=== FUNCTION ===
+function holidayEmailRuleText(holiday,value){
+  if(value.expediente==="Abertura excepcional"){
+    return"E-mail obrigatório: haverá abertura excepcional no feriado.";
+  }
+  if(holidayIsClosure(value)&&holidayIsExtended(holiday,value)){
+    return"E-mail obrigatório: o fechamento ficará ligado ao fim de semana ou a uma emenda.";
+  }
+  return"Não gerar e-mail para este aviso.";
+}
+
+=== FUNCTION ===
+function holidayStorySchedule(holiday){
+  const standard=[
+    {
+      key:"story-1",
+      label:"2 dias úteis antes",
+      date:holidayBusinessDayBefore(holiday.date,2)
+    },
+    {
+      key:"story-2",
+      label:"1 dia útil antes",
+      date:holidayBusinessDayBefore(holiday.date,1)
+    },
+    {
+      key:"story-3",
+      label:"No feriado",
+      date:holiday.date
+    }
+  ];
+
+  const today=isoDate(new Date());
+  if(today<standard[0].date)return standard;
+  if(today>holiday.date)return[];
+
+  const remaining=standard.filter(entry=>entry.date>today);
+  return[
+    {
+      key:"story-now",
+      label:"Publicar imediatamente",
+      date:today
+    },
+    ...remaining
+  ].filter((entry,index,list)=>
+    list.findIndex(candidate=>candidate.date===entry.date)===index
+  );
+}
+
+=== FUNCTION ===
+function holidayOperationSentence(holiday,value){
+  const date=holidayLongDate(holiday.date);
+  const weekdayName=holidayWeekday(holiday.date);
+
+  if(value.expediente==="Fechado"){
+    return`No feriado de ${holiday.name}, em ${date}, ${weekdayName}, estaremos fechados.`;
+  }
+  if(value.expediente==="Somente acolhimento fechado"){
+    return`No feriado de ${holiday.name}, em ${date}, ${weekdayName}, não haverá acolhimento.`;
+  }
+  if(value.expediente==="Somente expedição fechada"){
+    return`No feriado de ${holiday.name}, em ${date}, ${weekdayName}, a expedição estará pausada.`;
+  }
+  if(value.expediente==="Horário reduzido"){
+    const schedule=(value.horario_escala||"").trim()||"[CONFIRMAR HORÁRIO REDUZIDO]";
+    return`No feriado de ${holiday.name}, em ${date}, ${weekdayName}, estaremos online em horário especial: ${schedule}.`;
+  }
+  if(value.expediente==="Plantão"){
+    const schedule=(value.horario_escala||"").trim()||"[CONFIRMAR HORÁRIO OU ESCALA DE PLANTÃO]";
+    return`No feriado de ${holiday.name}, em ${date}, ${weekdayName}, teremos plantão: ${schedule}.`;
+  }
+  if(value.expediente==="Abertura excepcional"){
+    return`No feriado de ${holiday.name}, em ${date}, ${weekdayName}, vamos estar por aqui.`;
+  }
+  return`O funcionamento da Adapta em ${date} precisa ser confirmado.`;
+}
+
+=== FUNCTION ===
+function holidayPublicHeadline(holiday,value){
+  return`FERIADO DE ${holiday.name.toUpperCase()}`;
+}
+
+=== FUNCTION ===
+function holidayEmailBriefingHtml(holiday,value){
+  const required=holidayEmailRequired(holiday,value);
+  if(!required){
+    return`<div class="block">
+      <h3>E-mail aos associados</h3>
+      <p>Não gerar e-mail para este aviso.</p>
+    </div>`;
+  }
+
+  const subject=value.expediente==="Abertura excepcional"
+    ?`A Adapta estará online no feriado de ${holiday.name}`
+    :`${holiday.name}: ${holidayPublicCta(holiday,value).replace(/\.$/,"")}`;
+
+  const body=[
+    holidayOperationSentence(holiday,value),
+    holidayPublicCta(holiday,value),
+    holidayAvailabilityLine(value)
+  ].join("\n\n");
+
+  return`<div class="block">
+    <h3>E-mail aos associados</h3>
+    <p><b>Assunto sugerido:</b> ${escapeHtml(subject)}</p>
+    <div class="caption">${escapeHtml(body)}</div>
+  </div>`;
+}
+
+=== FUNCTION ===
+function holidayBriefingHtml(holiday,value,item){
+  const extended=holidayIsExtended(holiday,value);
+  const headline=holidayPublicHeadline(holiday,value);
+  const operation=holidayOperationSentence(holiday,value);
+  const cta=holidayPublicCta(holiday,value);
+  const format=holidayFormat(value,extended);
+  const storyDates=Array.isArray(item.holidayStoryDates)
+    ?item.holidayStoryDates.filter(Boolean)
+    :[];
+  const storyLabels=Array.isArray(item.holidayStoryLabels)
+    ?item.holidayStoryLabels
+    :[];
+  const observation=(value.observacao||"").trim();
+  const availability=holidayAvailabilityLine(value);
+  const caption=[
+    operation,
+    cta,
+    availability,
+    observation
+  ].filter(Boolean).join("\n\n");
+
+  const cards=[
+    headline,
+    holidayArtStatus(holiday,value),
+    cta,
+    availability
+  ];
+
+  return`<div class="post-body holiday-generated-brief">
+    <div class="meta">
+      <span class="tag batch-tag">Informativos feriados</span>
+      <span class="tag">${escapeHtml(format)}</span>
+      <span class="tag">Responsável · Giulia</span>
+      <span class="tag">Stories apenas</span>
+      <span class="tag">${holidayEmailRequired(holiday,value)?"E-mail necessário":"Sem e-mail"}</span>
+      ${extended?'<span class="tag">Feriado prolongado</span>':""}
+    </div>
+
+    <div class="block holiday-brief-summary">
+      <h3>Programação dos Stories</h3>
+      <div class="holiday-brief-grid">
+        ${storyDates.map((date,index)=>`<p><b>${escapeHtml(storyLabels[index]||`Story ${index+1}`)}</b><br>${formatDate(date)}</p>`).join("")}
+        <p><b>Feed operacional</b><br>Não publicar</p>
+      </div>
+      <p>É uma única peça oficial, reaproveitada sem alterações nas datas disponíveis.</p>
+    </div>
+
+    <div class="block">
+      <h3>Objetivo</h3>
+      <p>Informar a alteração do funcionamento, apresentar uma orientação prática e deixar claro quando a Adapta está disponível.</p>
+    </div>
+
+    <div class="block">
+      <h3>Texto da arte</h3>
+      <div class="cards">
+        ${cards.map((text,index)=>`<div class="card"><b>Bloco ${index+1}</b><div>${escapeHtml(text)}</div></div>`).join("")}
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Legenda sugerida</h3>
+      <div class="caption">${escapeHtml(caption)}</div>
+    </div>
+
+    ${holidayEmailBriefingHtml(holiday,value)}
+
+    <div class="block">
+      <h3>Direção visual</h3>
+      <p>Criar uma única peça vertical para Stories e reaproveitar a mesma arte em todas as datas disponíveis. Não adaptar o aviso operacional para o feed.</p>
+    </div>
+
+    <div class="block">
+      <h3>Regra para o feed</h3>
+      <p>${value.feed_editorial==="Relevante"
+        ?"A data foi marcada como relevante. Há uma pauta de feed separada para desenvolver o conteúdo editorial e incluir este aviso como informação secundária."
+        :"A data não gera pauta de feed."}</p>
+    </div>
+
+    <div class="block">
+      <h3>Dados confirmados pela direção</h3>
+      <div class="caption">Expediente: ${escapeHtml(value.expediente)}
+${value.horario_escala?`\nHorário ou escala: ${escapeHtml(value.horario_escala)}`:""}
+\nEquipe interna: ${escapeHtml(value.equipe_interna)}
+\nServiços: ${escapeHtml(holidayServicesText(value))}
+\nE-mail aos associados: ${escapeHtml(value.email_associados)}
+\nStories: ${escapeHtml(value.instagram)}
+\nPauta de feed: ${escapeHtml(value.feed_editorial)}
+${observation?`\nObservação: ${escapeHtml(observation)}`:""}</div>
+    </div>
+
+    <div class="block">
+      <h3>Antes da arte final</h3>
+      <div class="caption">${escapeHtml(holidayPendingText(value))}</div>
+    </div>
+  </div>`;
+}
+
+=== FUNCTION ===
+function holidayFeedBriefingHtml(holiday,value){
+  const operational=holidayCommunicationReady(holiday,value)
+    ?[
+      holidayOperationSentence(holiday,value),
+      holidayPublicCta(holiday,value),
+      holidayAvailabilityLine(value)
+    ].join("\n\n")
+    :"Estamos online de 9h às 17h!";
+
+  return`<div class="post-body holiday-generated-brief">
+    <div class="meta">
+      <span class="tag batch-tag">Informativos feriados</span>
+      <span class="tag">Pauta editorial para o feed</span>
+      <span class="tag">Responsável · Gaby</span>
+      <span class="tag">Publicar no feriado</span>
+    </div>
+
+    <div class="block">
+      <h3>Pauta</h3>
+      <p>Desenvolver um conteúdo próprio de reflexão, informação ou inspiração conectado a ${escapeHtml(holiday.name)} e à atuação da Adapta.</p>
+    </div>
+
+    <div class="block">
+      <h3>Direção editorial</h3>
+      <p>A data precisa sustentar uma pauta real. Não criar homenagem genérica nem transformar o feed em mural de feriados.</p>
+    </div>
+
+    <div class="block">
+      <h3>Informação de funcionamento</h3>
+      <p>Incluir de forma secundária, sem transformar o post em aviso operacional:</p>
+      <div class="caption">${escapeHtml(operational)}</div>
+    </div>
+
+    <div class="block">
+      <h3>Antes da produção</h3>
+      <p>Definir o recorte, as fontes, o formato e a relação concreta da data com a Adapta.</p>
+    </div>
+  </div>`;
+}
+
+=== FUNCTION ===
+function syncHolidayContentBase(){
+  const generated=[];
+
+  HOLIDAYS_2026.forEach((holiday,index)=>{
+    const value=centralHolidayState(holiday);
+
+    if(holidayCommunicationReady(holiday,value)){
+      const id=`holiday-content-${holiday.id}`;
+      const existingItem=state.items[id];
+      const item=migrateItem(existingItem);
+      const standardSchedule=holidayStorySchedule(holiday);
+
+      if(!existingItem){
+        item.stage="queue";
+        item.date=standardSchedule[0]?.date||holiday.date;
+        item.notes="Responsável: Giulia. Criar uma única peça de Story e reaproveitar nas datas disponíveis.";
+        item.natures=["Serviço","Informativo","Feriado"];
+        item.priority="high";
+        item.autoHolidayDate=true;
+        item.autoHolidayDates=true;
+        item.holidayStoryDates=standardSchedule.map(entry=>entry.date);
+        item.holidayStoryLabels=standardSchedule.map(entry=>entry.label);
+        item.stageChangedAt=nowIso();
+        item.updatedAt=item.stageChangedAt;
+      }else if(!Array.isArray(item.holidayStoryDates)||!item.holidayStoryDates.length){
+        item.holidayStoryDates=standardSchedule.map(entry=>entry.date);
+        item.holidayStoryLabels=standardSchedule.map(entry=>entry.label);
+        item.date=item.holidayStoryDates[0]||holiday.date;
+      }
+
+      item.formats=holidayFormat(value,holidayIsExtended(holiday,value));
+      item.behavior="parallel";
+      item.holidayDate=holiday.date;
+      item.date=item.holidayStoryDates?.[0]||holiday.date;
+
+      state.items[id]=item;
+
+      generated.push({
+        id,
+        number:101+index,
+        code:`IF${String(index+1).padStart(2,"0")}`,
+        title:`Stories · ${holiday.name}`,
+        base:"Informativos feriados",
+        tags:[
+          "Informativos feriados",
+          item.formats,
+          value.expediente,
+          "Stories apenas",
+          holidayEmailRequired(holiday,value)?"E-mail necessário":"Sem e-mail",
+          "Giulia"
+        ],
+        bodyHtml:holidayBriefingHtml(holiday,value,item),
+        source:"holiday",
+        holidayId:holiday.id,
+        active:true,
+        generatedAt:nowIso()
+      });
+    }
+
+    if(holidayFeedReady(value)){
+      const id=`holiday-feed-${holiday.id}`;
+      const existingItem=state.items[id];
+      const item=migrateItem(existingItem);
+
+      if(!existingItem){
+        item.stage="queue";
+        item.date=holiday.date;
+        item.notes="Pauta editorial ligada à data. O aviso de funcionamento entra apenas como informação secundária.";
+        item.natures=["Pauta","Informação","Feriado"];
+        item.priority="normal";
+        item.behavior="main";
+        item.formats="Feed · formato a definir";
+        item.stageChangedAt=nowIso();
+        item.updatedAt=item.stageChangedAt;
+      }
+
+      state.items[id]=item;
+
+      generated.push({
+        id,
+        number:201+index,
+        code:`PF${String(index+1).padStart(2,"0")}`,
+        title:`Pauta de feed · ${holiday.name}`,
+        base:"Informativos feriados",
+        tags:[
+          "Informativos feriados",
+          "Pauta editorial",
+          "Feed",
+          holiday.name,
+          "Gaby"
+        ],
+        bodyHtml:holidayFeedBriefingHtml(holiday,value),
+        source:"holiday-feed",
+        holidayId:holiday.id,
+        active:true,
+        generatedAt:nowIso()
+      });
+    }
+  });
+
+  state.holidayContents=generated;
+}
+
+=== FUNCTION ===
+function centralHolidayTaskStatus(holiday,value){
+  if(value.expediente==="A definir"){
+    return{status:"bloqueado",label:"Definir expediente"};
+  }
+  if(value.feed_editorial==="A decidir"){
+    return{status:"bloqueado",label:"Definir pauta de feed"};
+  }
+  if(holidayIsNoChange(value)){
+    return value.feed_editorial==="Relevante"
+      ?{status:"concluido",label:"Pauta de feed criada"}
+      :{status:"dispensado",label:"Sem aviso de feriado"};
+  }
+
+  const teamOk=["Equipe avisada","Não necessário"].includes(value.equipe_interna)
+    ||(value.equipe_acolhimento&&value.equipe_expedicao);
+
+  if(!teamOk){
+    return{status:"bloqueado",label:"Alinhar equipe interna"};
+  }
+  if(!["Enviado","Não necessário"].includes(value.email_associados)){
+    return{status:"pendente",label:"Preparar ou enviar e-mail"};
+  }
+  if(value.instagram!=="Agendado"){
+    return{status:"pendente",label:"Agendar os Stories"};
+  }
+  return{status:"concluido",label:"Comunicação organizada"};
+}
+
+=== FUNCTION ===
+function syncHolidayRecordsToCentral(){
+  const tasks=[];
+  HOLIDAYS_2026.forEach(holiday=>{
+    const value=centralHolidayState(holiday);
+    const communication=centralHolidayTaskStatus(holiday,value);
+    const entry=state.calendarEntries.find(item=>item.id===`feriado-${holiday.date}`);
+    const complete=centralHolidayComplete(value);
+
+    if(entry){
+      const normalOperation=holidayIsNoChange(value);
+      entry.title=normalOperation
+        ?`Feriado — ${holiday.name} · sem alteração`
+        :`Informativo — ${holiday.name}`;
+      entry.operationDecision=value.expediente;
+      entry.behavior=normalOperation?"parallel":"main";
+      entry.status=complete?"confirmado":"provisório";
+      entry.note=[
+        `Expediente: ${value.expediente}`,
+        value.horario_escala?`Horário/Escala: ${value.horario_escala}`:"",
+        `Equipe: ${value.equipe_interna}`,
+        `Acolhimento: ${value.equipe_acolhimento?"confirmado":"pendente"}`,
+        `Expedição: ${value.equipe_expedicao?"confirmada":"pendente"}`,
+        `E-mail: ${value.email_associados}`,
+        `Stories: ${value.instagram}`,
+        `Pauta de feed: ${value.feed_editorial}`,
+        value.observacao?`Observação: ${value.observacao}`:""
+      ].filter(Boolean).join(" · ");
+      entry.updatedAt=value.updated_at||nowIso();
+    }
+
+    tasks.push({
+      holidayId:holiday.id,
+      title:holiday.name,
+      date:holiday.date,
+      scope:holiday.scope,
+      status:communication.status,
+      label:communication.label,
+      complete,
+      expediente:value.expediente,
+      email:value.email_associados,
+      instagram:value.instagram
+    });
+  });
+  state.holidayCommunicationTasks=tasks;
+  syncHolidayContentBase();
+}
+
+=== FUNCTION ===
+function renderHolidayOverview(){
+  const container=document.getElementById("holidayOverviewList");
+  const count=document.getElementById("holidayOverviewCount");
+  if(!container||!count)return;
+
+  const todayDate=new Date();
+  todayDate.setHours(0,0,0,0);
+  const upcoming=(state.holidayCommunicationTasks||[])
+    .filter(task=>dateFromIso(task.date)>=todayDate)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const pending=upcoming.filter(task=>!["concluido","dispensado"].includes(task.status));
+  count.textContent=`${pending.length} pendências`;
+
+  const display=(pending.length?pending:upcoming).slice(0,5);
+  container.innerHTML=display.length?display.map(task=>`
+    <div class="holiday-overview-row">
+      <div>
+        <strong>${escapeHtml(task.title)}</strong>
+        <span>${formatDate(task.date)} · ${escapeHtml(task.expediente)}</span>
+      </div>
+      <button class="link-button" type="button" data-open-holiday-page>
+        ${escapeHtml(task.label)}
+      </button>
+    </div>
+  `).join(""):`<div class="empty">Não há feriados futuros neste calendário.</div>`;
+
+  container.querySelectorAll("[data-open-holiday-page]").forEach(button=>{
+    button.addEventListener("click",()=>openPage("holidays"));
+  });
+}
+
+=== FUNCTION ===
+function openHolidayContentBase(){
+  openPage("contents");
+  currentBase="Informativos feriados";
+  currentLineFilter="";
+  updateContentLineFilter();
+  updateBaseFilterState();
+  switchView("queue");
+}
+
+=== FUNCTION ===
+function hydrateHolidayRecords(){
+    if(hydrating) return;
+    hydrating=true;
+    try{
+      const response=await fetch("/api/holiday-records",{cache:"no-store",credentials:"same-origin"});
+      if(!response.ok) return;
+      const result=await response.json();
+      if(!Array.isArray(result.holidayRecords)) return;
+      state.holidayRecords=JSON.parse(JSON.stringify(result.holidayRecords));
+      if(Array.isArray(result.holidayCommunicationTasks)) state.holidayCommunicationTasks=JSON.parse(JSON.stringify(result.holidayCommunicationTasks));
+      if(Array.isArray(result.holidayContents)) state.holidayContents=JSON.parse(JSON.stringify(result.holidayContents));
+      try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}
+      try{refreshWithoutCalendarRebuild();}catch{}
+      try{holidayDataHandler?.onDataChanged(JSON.parse(JSON.stringify(state.holidayRecords)));}catch{}
+    }catch(error){ console.warn("Não foi possível sincronizar feriados do D1.",error); }
+    finally{hydrating=false;}
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",hydrateHolidayRecords,{once:true});
+  else hydrateHolidayRecords();
+  document.addEventListener("click",event=>{
+    if(event.target?.closest?.('[data-page="holidays"]')) setTimeout(hydrateHolidayRecords,30);
+  });
+}
