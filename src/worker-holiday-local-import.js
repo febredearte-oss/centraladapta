@@ -1,7 +1,6 @@
 import baseWorker from "./worker-auto-seed.js";
 
 const IMPORT_PATH = "/api/recover-holiday-local";
-const STATUS_PATH = "/__holiday-recovery-status-8f4d2c";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -38,21 +37,6 @@ async function requireCentralAuth(request, env, ctx){
   let session=null;
   try { session=await response.clone().json(); } catch {}
   return {ok:true,email:session?.email || "authenticated"};
-}
-
-async function recoveryStatus(env){
-  const row = await env.DB.prepare("SELECT revision,state_json,updated_at,updated_by FROM app_state WHERE id=1").first();
-  if(!row?.state_json) return json({error:"no_current_state"},500);
-  let state;
-  try { state=JSON.parse(row.state_json); } catch { return json({error:"invalid_current_state"},500); }
-  const records=asArray(state.holidayRecords).filter(validRecord);
-  return json({
-    revision:Number(row.revision||0),
-    updatedAt:row.updated_at||null,
-    updatedBy:row.updated_by||null,
-    holidayRecords:records.length,
-    recovered:records.length>0 && String(row.updated_by||"").startsWith("holiday-local-recovery:")
-  });
 }
 
 async function importLocalHolidayState(request, env, actor){
@@ -120,7 +104,6 @@ async function importLocalHolidayState(request, env, actor){
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
-    if(url.pathname === STATUS_PATH && request.method === "GET") return recoveryStatus(env);
     if(url.pathname === IMPORT_PATH && request.method === "POST"){
       const auth = await requireCentralAuth(request,env,ctx);
       if(!auth.ok) return auth.response;
