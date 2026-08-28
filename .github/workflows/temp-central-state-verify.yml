@@ -15,27 +15,41 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - run: sleep 15
+      - run: sleep 20
       - run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Identify remaining divergence
+      - name: Confirm unified canonical state
         run: |
           node --input-type=module <<'EOF'
           import { chromium } from 'playwright';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage();
+          const errors=[];page.on('pageerror',e=>errors.push(e.message));
           await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
           await page.waitForFunction(()=>document.documentElement.dataset.centralState==='ready',{timeout:30000});
           await page.waitForTimeout(1000);
           const result=await page.evaluate(async()=>{
-            const remote=(await (await fetch('/api/shared-state',{cache:'no-store'})).json()).state;
+            const remote=await (await fetch('/api/shared-state',{cache:'no-store'})).json();
             const local=JSON.parse(localStorage.getItem('central_adapta_v40')||'null');
             const canonical=window.__adaptaCentralState.canonical;
-            const lc=canonical(local),rc=canonical(remote);
-            const keys=[...new Set([...Object.keys(lc||{}),...Object.keys(rc||{})])];
-            return keys.filter(k=>JSON.stringify(lc?.[k])!==JSON.stringify(rc?.[k])).map(k=>({key:k,local:lc?.[k],remote:rc?.[k]}));
+            const lc=canonical(local),rc=canonical(remote.state);
+            const keys=['items','calendarEntries','lines','holidayRecords','holidayCommunicationTasks','holidayContents'];
+            const domains=Object.fromEntries(keys.map(k=>[k,JSON.stringify(lc?.[k])===JSON.stringify(rc?.[k])]));
+            return {
+              marker:!!document.getElementById('central-state-architecture-v4'),
+              ready:window.__adaptaCentralState.ready(),
+              revision:window.__adaptaCentralState.getRevision(),
+              remoteRevision:Number(remote.revision||0),
+              canonicalSame:JSON.stringify(lc)===JSON.stringify(rc),
+              domains,
+              legacyShared:!!document.querySelector('[id^="shared-state-sync-v"]'),
+              legacyHoliday:!!document.getElementById('holiday-d1-persistence-v2')
+            };
           });
+          result.errors=errors;
+          result.ok=result.marker&&result.ready&&result.revision===result.remoteRevision&&result.canonicalSame&&Object.values(result.domains).every(Boolean)&&!result.legacyShared&&!result.legacyHoliday&&!errors.length;
           console.log(JSON.stringify(result,null,2));
           await browser.close();
+          if(!result.ok)process.exit(1);
           EOF
