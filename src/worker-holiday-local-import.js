@@ -35,8 +35,17 @@ function mergeHolidayCalendarEntries(current, incoming){
   const local = asArray(incoming).filter(item => item && typeof item.id === "string" && item.id.startsWith("feriado-"));
   return base.concat(local);
 }
+async function requireCentralAuth(request, env, ctx){
+  const probeUrl = new URL("/api/session", request.url);
+  const probe = new Request(probeUrl.toString(), {method:"GET", headers:request.headers});
+  const response = await baseWorker.fetch(probe,env,ctx);
+  if(!response.ok) return {ok:false,response};
+  let session=null;
+  try { session=await response.clone().json(); } catch {}
+  return {ok:true,email:session?.email || "authenticated"};
+}
 
-async function importLocalHolidayState(request, env){
+async function importLocalHolidayState(request, env, actor){
   let body;
   try { body = await request.json(); } catch { return json({error:"invalid_json"},400); }
   const local = body?.state;
@@ -70,13 +79,15 @@ async function importLocalHolidayState(request, env){
   const serialized = JSON.stringify(recovered);
   if(serialized.length > 1_500_000) return json({error:"state_too_large"},413);
 
+  const update = await env.DB.prepare(
+    "UPDATE app_state SET revision=?,state_json=?,updated_at=?,updated_by=? WHERE id=1 AND revision=?"
+  ).bind(nextRevision,serialized,now,`holiday-local-recovery:${actor}`,currentRevision).run();
+  if(!update.meta?.changes) return json({error:"revision_conflict"},409);
+
   await env.DB.batch([
     env.DB.prepare(
       "INSERT INTO state_history (revision,state_json,changed_at,changed_by) VALUES (?,?,?,?)"
-    ).bind(currentRevision,currentRow.state_json,currentRow.updated_at || now,currentRow.updated_by || "unknown"),
-    env.DB.prepare(
-      "UPDATE app_state SET revision=?,state_json=?,updated_at=?,updated_by=? WHERE id=1 AND revision=?"
-    ).bind(nextRevision,serialized,now,"holiday-local-recovery",currentRevision),
+    ).bind(currentRevision,currentRow.state_json,currentRow.updated_at || now,currentRow.updated_by || actor),
     env.DB.prepare(
       "DELETE FROM state_history WHERE id NOT IN (SELECT id FROM state_history ORDER BY id DESC LIMIT 50)"
     )
@@ -95,7 +106,9 @@ export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
     if(url.pathname === IMPORT_PATH && request.method === "POST"){
-      return importLocalHolidayState(request,env);
+      const auth = await requireCentralAuth(request,env,ctx);
+      if(!auth.ok) return auth.response;
+      return importLocalHolidayState(request,env,auth.email);
     }
     return baseWorker.fetch(request,env,ctx);
   }
