@@ -1,7 +1,7 @@
 import baseWorker from "./worker-auto-seed.js";
 
 const IMPORT_PATH = "/api/recover-holiday-local";
-const STATUS_PATH = "/__holiday-record-map-3ac91e";
+const RECORDS_PATH = "/api/holiday-records";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -40,6 +40,29 @@ async function requireCentralAuth(request, env, ctx){
   return {ok:true,email:session?.email || "authenticated"};
 }
 
+async function readCurrentState(env){
+  const row = await env.DB.prepare("SELECT revision,state_json,updated_at,updated_by FROM app_state WHERE id=1").first();
+  if(!row?.state_json) return {error:json({error:"no_current_state"},500)};
+  try {
+    return {row,state:JSON.parse(row.state_json)};
+  } catch {
+    return {error:json({error:"invalid_current_state"},500)};
+  }
+}
+
+async function holidayRecords(env){
+  const current = await readCurrentState(env);
+  if(current.error) return current.error;
+  return json({
+    revision:Number(current.row.revision || 0),
+    updatedAt:current.row.updated_at,
+    updatedBy:current.row.updated_by,
+    holidayRecords:asArray(current.state.holidayRecords),
+    holidayCommunicationTasks:asArray(current.state.holidayCommunicationTasks),
+    holidayContents:asArray(current.state.holidayContents)
+  });
+}
+
 async function importLocalHolidayState(request, env, actor){
   let body;
   try { body = await request.json(); } catch { return json({error:"invalid_json"},400); }
@@ -49,15 +72,12 @@ async function importLocalHolidayState(request, env, actor){
   const localRecords = asArray(local.holidayRecords).filter(validRecord);
   if(!localRecords.length) return json({error:"no_local_holiday_records"},400);
 
-  const currentRow = await env.DB.prepare(
-    "SELECT revision,state_json,updated_at,updated_by FROM app_state WHERE id=1"
-  ).first();
-  if(!currentRow?.state_json) return json({error:"no_current_state"},500);
+  const current = await readCurrentState(env);
+  if(current.error) return current.error;
+  const currentRow=current.row;
+  const currentState=current.state;
 
-  let current;
-  try { current = JSON.parse(currentRow.state_json); } catch { return json({error:"invalid_current_state"},500); }
-
-  const currentRecords = asArray(current.holidayRecords).filter(validRecord);
+  const currentRecords = asArray(currentState.holidayRecords).filter(validRecord);
   if(currentRecords.length){
     return json({
       error:"central_already_has_holiday_records",
@@ -66,12 +86,12 @@ async function importLocalHolidayState(request, env, actor){
     },409);
   }
 
-  const recovered = clone(current);
+  const recovered = clone(currentState);
   recovered.holidayRecords = localRecords;
   recovered.holidayCommunicationTasks = asArray(local.holidayCommunicationTasks);
   recovered.holidayContents = asArray(local.holidayContents);
-  recovered.items = mergeHolidayItems(current.items, local.items);
-  recovered.calendarEntries = mergeHolidayCalendarEntries(current.calendarEntries, local.calendarEntries);
+  recovered.items = mergeHolidayItems(currentState.items, local.items);
+  recovered.calendarEntries = mergeHolidayCalendarEntries(currentState.calendarEntries, local.calendarEntries);
 
   const currentRevision = Number(currentRow.revision || 0);
   const nextRevision = currentRevision + 1;
@@ -102,28 +122,14 @@ async function importLocalHolidayState(request, env, actor){
   });
 }
 
-async function holidayRecordMap(env){
-  const row=await env.DB.prepare("SELECT revision,state_json,updated_at,updated_by FROM app_state WHERE id=1").first();
-  if(!row?.state_json) return json({error:"no_state"},500);
-  let state; try{state=JSON.parse(row.state_json)}catch{return json({error:"invalid_state"},500)}
-  const records=asArray(state.holidayRecords).map(r=>({
-    feriado_id:r.feriado_id,
-    expediente:r.expediente,
-    equipe_interna:r.equipe_interna,
-    email_associados:r.email_associados,
-    feed_editorial:r.feed_editorial,
-    instagram:r.instagram,
-    updated_at:r.updated_at,
-    log_signer:r.log_signer
-  }));
-  const holidays=asArray(state.holidays).map(h=>({id:h.id,date:h.date,name:h.name,type:h.type}));
-  return json({revision:Number(row.revision||0),updatedAt:row.updated_at,updatedBy:row.updated_by,records,holidays});
-}
-
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
-    if(url.pathname === STATUS_PATH && request.method === "GET") return holidayRecordMap(env);
+    if(url.pathname === RECORDS_PATH && request.method === "GET"){
+      const auth = await requireCentralAuth(request,env,ctx);
+      if(!auth.ok) return auth.response;
+      return holidayRecords(env);
+    }
     if(url.pathname === IMPORT_PATH && request.method === "POST"){
       const auth = await requireCentralAuth(request,env,ctx);
       if(!auth.ok) return auth.response;
