@@ -1,23 +1,24 @@
 {
   "ok": false,
-  "runId": "33183753747",
-  "checkedAt": "2026-08-28T15:10:26.282Z",
+  "runId": "33184189995",
+  "checkedAt": "2026-08-28T15:15:51.362Z",
   "clock": {
     "timeZone": "America/Fortaleza",
     "date": "2026-08-28",
-    "time": "12:10:24",
-    "iso": "2026-08-28T15:10:24.388Z",
+    "time": "12:15:49",
+    "iso": "2026-08-28T15:15:49.468Z",
     "source": "cloudflare-worker"
   },
   "pageErrors": [
     {
       "name": "TypeError",
       "message": "Cannot read properties of undefined (reading 'date')",
-      "stack": "TypeError: Cannot read properties of undefined (reading 'date')\n    at https://centraladapta.febredearte.workers.dev/:5107:19\n    at Array.filter (<anonymous>)\n    at unscheduledCalendarItems (https://centraladapta.febredearte.workers.dev/:5105:6)\n    at renderUnscheduled (https://centraladapta.febredearte.workers.dev/:5137:15)\n    at renderCalendar (https://centraladapta.febredearte.workers.dev/:5228:3)\n    at openPage (https://centraladapta.febredearte.workers.dev/:5587:5)\n    at HTMLButtonElement.<anonymous> (https://centraladapta.febredearte.workers.dev/:5602:94)"
+      "stack": "TypeError: Cannot read properties of undefined (reading 'date')\n    at https://centraladapta.febredearte.workers.dev/:5216:19\n    at Array.filter (<anonymous>)\n    at https://centraladapta.febredearte.workers.dev/:5214:31\n    at Array.forEach (<anonymous>)\n    at renderCalendarProgress (https://centraladapta.febredearte.workers.dev/:5213:12)\n    at renderCalendar (https://centraladapta.febredearte.workers.dev/:5232:3)\n    at openPage (https://centraladapta.febredearte.workers.dev/:5590:5)\n    at HTMLButtonElement.<anonymous> (https://centraladapta.febredearte.workers.dev/:5605:94)"
     }
   ],
   "pre": {
-    "unscheduledCalendarItems": "function unscheduledCalendarItems(){\n  const stageOrder={editing:0,queue:1,scheduled:2,ideas:3};\n\n  const entryItems=state.calendarEntries\n    .filter(entry=>!entry.date&&entry.status!==\"cancelado\")\n    .map(entry=>({\n      sourceType:\"entry\",\n      sourceId:entry.id,\n      title:entry.title,\n      lineId:entry.lineId||\"\",\n      meta:entry.origin===\"linha\"?\"Slot de linha editorial\":\"Planejamento\",\n      sort:entry.origin===\"linha\"?0:1,\n      targetMonth:entry.targetMonth\n    }));\n\n  const postItems=allPosts()\n    .filter(post=>{\n      const item=state.items[post.id];\n      return!item.date&&item.stage!==\"published\";\n    })\n    .map(post=>({\n      sourceType:\"post\",\n      sourceId:post.id,\n      title:post.title,\n      lineId:state.items[post.id].lineId||\"\",\n      meta:STAGE_LABELS[state.items[post.id].stage],\n      sort:stageOrder[state.items[post.id].stage]??4,\n      targetMonth:null\n    }));\n\n  return[...entryItems,...postItems].sort((a,b)=>{\n    if(a.sourceType!==b.sourceType){\n      return a.sourceType===\"entry\"?-1:1;\n    }\n    if(\n      a.sourceType===\"entry\"\n      &&a.targetMonth!==null\n      &&b.targetMonth!==null\n      &&a.targetMonth!==b.targetMonth\n    ){\n      return a.targetMonth-b.targetMonth;\n    }\n    return a.sort-b.sort||a.title.localeCompare(b.title);\n  });\n}",
+    "unscheduledCalendarItems": "function unscheduledCalendarItems(){\n  const stageOrder={editing:0,queue:1,scheduled:2,ideas:3};\n\n  const entryItems=state.calendarEntries\n    .filter(entry=>!entry.date&&entry.status!==\"cancelado\")\n    .map(entry=>({\n      sourceType:\"entry\",\n      sourceId:entry.id,\n      title:entry.title,\n      lineId:entry.lineId||\"\",\n      meta:entry.origin===\"linha\"?\"Slot de linha editorial\":\"Planejamento\",\n      sort:entry.origin===\"linha\"?0:1,\n      targetMonth:entry.targetMonth\n    }));\n\n  const postItems=allPosts()\n    .filter(post=>{\n      const item=state.items?.[post.id];\n      return item&&!item.date&&item.stage!==\"published\";\n    })\n    .map(post=>{\n      const item=state.items[post.id];\n      return{\n        sourceType:\"post\",\n        sourceId:post.id,\n        title:post.title,\n        lineId:item.lineId||\"\",\n        meta:STAGE_LABELS[item.stage],\n        sort:stageOrder[item.stage]??4,\n        targetMonth:null\n      };\n    });\n\n  return[...entryItems,...postItems].sort((a,b)=>{\n    if(a.sourceType!==b.sourceType){\n      return a.sourceType===\"entry\"?-1:1;\n    }\n    if(\n      a.sourceType===\"entry\"\n      &&a.targetMonth!==null\n      &&b.targetMonth!==null\n      &&a.targetMonth!==b.targetMonth\n    ){\n      return a.targetMonth-b.targetMonth;\n    }\n    return a.sort-b.sort||a.title.localeCompare(b.title);\n  });\n}",
+    "renderCalendarProgress": "function renderCalendarProgress(){\n  const year=Number(state.settings.calendarYear||2026);\n  const capacity=Number(state.settings.weeklyCapacity||3);\n  document.getElementById(\"capacityLabel\").textContent=capacity;\n\n  const start=year===2026?dateFromIso(state.settings.planningStart):new Date(year,0,1,12);\n  const end=new Date(year,11,31,12);\n  const weekKeys=[];\n  const seen=new Set();\n\n  for(let date=new Date(start);date<=end;date.setDate(date.getDate()+1)){\n    const key=weekKey(date);\n    if(!seen.has(key)){seen.add(key);weekKeys.push(key)}\n  }\n\n  let filled=0;\n  weekKeys.forEach(key=>{\n    const postUsed=allPosts().filter(post=>{\n      const item=state.items[post.id];\n      return item.date&&weekKey(item.date)===key&&item.behavior!==\"parallel\";\n    }).length;\n    const entryUsed=state.calendarEntries.filter(entry=>{\n      return entry.date&&weekKey(entry.date)===key&&entry.behavior!==\"parallel\"&&entry.status!==\"cancelado\";\n    }).length;\n    filled+=Math.min(postUsed+entryUsed,capacity);\n  });\n\n  const total=weekKeys.length*capacity;\n  const percent=total?Math.min(100,Math.round((filled/total)*100)):0;\n  document.getElementById(\"progressSlots\").textContent=`${filled} de ${total} slots preenchidos`;\n  document.getElementById(\"progressPercent\").textContent=`${percent}%`;\n  document.getElementById(\"progressFill\").style.width=`${percent}%`;\n}",
     "stateItemsType": "object",
     "stateItemKeys": [
       "post-01",
