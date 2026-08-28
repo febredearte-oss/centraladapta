@@ -21,31 +21,29 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Build generated frontend
         run: npx wrangler deploy --dry-run
-      - name: Extract holiday progress source
+      - name: Extract native holiday source
         run: |
           node --input-type=module <<'EOF'
           import { readFileSync, writeFileSync } from 'node:fs';
           const html=readFileSync('public/index.html','utf8');
-          const needles=['Progresso geral das decisões','Progresso geral','decisões','holiday-progress','holidayProgress'];
+          const needles=['feriadosNativeHost','native-module-host','holidayDataHandler','centralHolidayRecord','holidayRecords','attachShadow','srcdoc','iframe'];
           const chunks=[];
           for(const needle of needles){
             let from=0;
             while(true){
               const i=html.indexOf(needle,from);if(i<0)break;
-              chunks.push(`\n=== ${needle} @ ${i} ===\n`+html.slice(Math.max(0,i-5000),Math.min(html.length,i+8000)));
+              chunks.push(`\n=== ${needle} @ ${i} ===\n`+html.slice(Math.max(0,i-9000),Math.min(html.length,i+16000)));
               from=i+needle.length;
+              if(chunks.join('').length>180000)break;
             }
+            if(chunks.join('').length>180000)break;
           }
-          const functionRegex=/function\s+[A-Za-z0-9_$]*(?:Holiday|holiday)[A-Za-z0-9_$]*\s*\([^)]*\)\s*\{[\s\S]{0,12000}?\n\}/g;
-          for(const match of html.matchAll(functionRegex)){
-            if(/progress|decision|decis|feriad/i.test(match[0])) chunks.push(`\n=== FUNCTION ===\n${match[0]}`);
-          }
-          writeFileSync('holiday-progress-source.txt',chunks.join('\n').slice(0,100000));
+          writeFileSync('holiday-progress-source.txt',chunks.join('\n').slice(0,200000));
           EOF
       - name: Record diagnostic
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
           git add holiday-progress-source.txt
-          git commit -m "ci: inspect holiday progress source" || true
+          git commit -m "ci: locate native holiday module source" || true
           git push
