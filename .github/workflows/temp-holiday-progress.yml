@@ -1,0 +1,69 @@
+name: TEMP Holiday Progress Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/temp-holiday-progress.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Inspect holiday progress
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          import { writeFileSync } from 'node:fs';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1600,height:1200}});
+          await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
+          const nav=page.locator('[data-page="holidays"]').first();
+          if(await nav.count()) await nav.click();
+          await page.waitForTimeout(1500);
+          const result=await page.evaluate(()=>{
+            const all=[...document.querySelectorAll('body *')];
+            const target=all.find(el=>(el.textContent||'').trim()==='Progresso geral das decisões') || all.find(el=>(el.textContent||'').includes('Progresso geral das decisões'));
+            const functions={};
+            for(const key of Object.getOwnPropertyNames(window)){
+              let value;try{value=window[key]}catch{continue}
+              if(typeof value!=='function')continue;
+              let src='';try{src=Function.prototype.toString.call(value)}catch{continue}
+              const lower=src.toLowerCase();
+              if(lower.includes('holiday') && (lower.includes('progress')||lower.includes('decis')||lower.includes('feriado'))) functions[key]=src.slice(0,12000);
+            }
+            const records=Array.isArray(state?.holidayRecords)?state.holidayRecords:[];
+            const holidays=Array.isArray(state?.holidays)?state.holidays:[];
+            return {
+              targetText:target?.textContent||null,
+              targetOuter:target?.outerHTML||null,
+              parentOuter:target?.parentElement?.outerHTML||null,
+              grandParentOuter:target?.parentElement?.parentElement?.outerHTML||null,
+              holidays,
+              holidayRecords:records,
+              functions
+            };
+          });
+          const api=await page.evaluate(async()=>{const r=await fetch('/api/holiday-records',{cache:'no-store'});return {status:r.status,data:r.ok?await r.json():null}});
+          result.api=api;
+          writeFileSync('holiday-progress-diagnostic.json',JSON.stringify(result,null,2));
+          await browser.close();
+          EOF
+      - name: Record diagnostic
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
+          git add holiday-progress-diagnostic.json
+          git commit -m "ci: inspect holiday progress" || true
+          git push
