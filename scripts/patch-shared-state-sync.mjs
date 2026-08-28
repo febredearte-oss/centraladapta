@@ -30,6 +30,7 @@ const script=`<script id="${marker}">
     for(const [key,item] of Object.entries(value)){
       if(path[0]==="holidayContents"&&key==="generatedAt")continue;
       if(path[0]==="calendarEntries"&&key==="updatedAt"&&String(value.id||"").startsWith("feriado-"))continue;
+      if(path.length===1&&path[0]==="settings"&&key==="calendarYear")continue;
       out[key]=canonical(item,[...path,key]);
     }
     return out;
@@ -208,4 +209,4 @@ html=html.replace(/<script id="shared-state-sync-v[123]">[\s\S]*?<\/script>\s*/g
 html=html.replace(/<script id="central-state-architecture-v4">[\s\S]*?<\/script>\s*/g,"");
 html=html.replace("</body>",script+"\n</body>");
 writeFileSync(FILE,html,"utf8");
-console.log("Central Adapta: D1 é a fonte única; timestamps derivados de renderização não geram alterações operacionais.");
+console.log("Central Adapta: D1 é a fonte única; metadados derivados de renderização e navegação não geram alterações operacionais.");
