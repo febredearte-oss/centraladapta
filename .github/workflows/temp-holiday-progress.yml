@@ -21,29 +21,28 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Build generated frontend
         run: npx wrangler deploy --dry-run
-      - name: Decode native holiday module
+      - name: Find embedded holiday module
         run: |
           node --input-type=module <<'EOF'
           import { readFileSync, writeFileSync } from 'node:fs';
           const html=readFileSync('public/index.html','utf8');
-          const anchor=html.indexOf('feriadosNativeHost');
-          const after=html.indexOf('atob("',anchor);
-          if(after<0) throw new Error('embedded native module not found');
-          const start=after+6;
-          const end=html.indexOf('")',start);
-          if(end<0) throw new Error('embedded module terminator not found');
-          const encoded=html.slice(start,end);
-          const decoded=Buffer.from(encoded,'base64').toString('utf8');
-          writeFileSync('holiday-native-module.html',decoded);
-          const needles=['Progresso geral das decisões','Progresso geral','progress','decisões','decision'];
+          const candidates=[...html.matchAll(/[A-Za-z0-9+/]{8000,}={0,2}/g)];
+          let found=null;
+          for(const match of candidates){
+            let decoded='';try{decoded=Buffer.from(match[0],'base64').toString('utf8')}catch{continue}
+            if(decoded.includes('expediente-select') || decoded.includes('Resumo das decisões') || decoded.includes('summary-panel')){found={encoded:match[0],decoded,index:match.index};break}
+          }
+          if(!found) throw new Error('holiday payload not found among '+candidates.length+' base64 candidates');
+          writeFileSync('holiday-native-module.html',found.decoded);
+          const needles=['Progresso geral das decisões','Progresso geral','progress','decisões','decision','summary'];
           const chunks=[];
-          for(const needle of needles){let from=0;while(true){const i=decoded.toLowerCase().indexOf(needle.toLowerCase(),from);if(i<0)break;chunks.push(`\n=== ${needle} @ ${i} ===\n`+decoded.slice(Math.max(0,i-7000),Math.min(decoded.length,i+14000)));from=i+needle.length}}
-          writeFileSync('holiday-progress-source.txt',chunks.join('\n').slice(0,180000));
+          for(const needle of needles){let from=0;while(true){const i=found.decoded.toLowerCase().indexOf(needle.toLowerCase(),from);if(i<0)break;chunks.push(`\n=== ${needle} @ ${i} ===\n`+found.decoded.slice(Math.max(0,i-7000),Math.min(found.decoded.length,i+14000)));from=i+needle.length}}
+          writeFileSync('holiday-progress-source.txt',chunks.join('\n').slice(0,200000));
           EOF
       - name: Record diagnostic
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
           git add holiday-progress-source.txt holiday-native-module.html
-          git commit -m "ci: decode native holiday module" || true
+          git commit -m "ci: identify embedded holiday module payload" || true
           git push
