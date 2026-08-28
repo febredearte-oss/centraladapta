@@ -17,5 +17,13 @@ jobs:
       - name: Read recovery status
         run: |
           set -e
-          sleep 12
-          curl -i --fail-with-body --max-time 30 https://centraladapta.febredearte.workers.dev/__holiday-recovery-status-20260828
+          for i in $(seq 1 24); do
+            body=$(curl -sS --fail-with-body --max-time 20 https://centraladapta.febredearte.workers.dev/__holiday-recovery-status-20260828 || true)
+            echo "$body"
+            if ! printf '%s' "$body" | grep -q 'currentScore'; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Latest recovery worker did not become active in polling window.' >&2
+          exit 1
