@@ -17,12 +17,13 @@ O D1 é a única fonte de verdade do workspace. Nenhum módulo pode considerar `
 
 O estado canônico é formado pelos dados que representam decisões e operação: conteúdos, etapas, datas, linhas editoriais, slots, decisões de feriados, comunicação, responsáveis e demais valores editáveis.
 
-Alguns componentes regeneram metadados técnicos durante a renderização. Eles não representam uma nova decisão e não podem criar revisão nem log por conta própria. Hoje entram nessa categoria:
+Alguns componentes regeneram metadados técnicos ou de navegação durante a renderização. Eles não representam uma nova decisão e não podem criar revisão nem log por conta própria. Hoje entram nessa categoria:
 
 - `holidayContents[].generatedAt`;
-- `calendarEntries[].updatedAt` quando a entrada é um informativo de feriado gerado automaticamente (`id` iniciado por `feriado-`).
+- `calendarEntries[].updatedAt` quando a entrada é um informativo de feriado gerado automaticamente (`id` iniciado por `feriado-`);
+- `settings.calendarYear`, que representa apenas o ano visualizado pelo calendário no navegador.
 
-O adaptador central compara esses objetos de forma canônica: ignora apenas esses timestamps para detectar mudança, mas preserva o objeto completo quando existe uma alteração operacional real.
+O adaptador central compara esses objetos de forma canônica: ignora apenas esses metadados para detectar mudança, mas preserva o objeto completo quando existe uma alteração operacional real.
 
 ## Fluxo de leitura
 
@@ -44,7 +45,7 @@ O cache local nunca vence o estado central durante o boot.
 6. O front relê o estado central confirmado e substitui o espelho local.
 7. Em falha de gravação, a interface volta ao último estado confirmado pelo D1.
 
-Mudanças que consistem apenas em metadados derivados de renderização são descartadas antes da escrita e não geram auditoria.
+Mudanças que consistem apenas em metadados derivados de renderização ou navegação são descartadas antes da escrita e não geram auditoria.
 
 ## Sincronização entre navegadores
 
