@@ -1,0 +1,20 @@
+name: TEMP Recovery Status
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/temp-recovery-status.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read recovery status
+        run: |
+          set -e
+          curl -i --fail-with-body --max-time 30 https://centraladapta.febredearte.workers.dev/__holiday-recovery-status-20260828
