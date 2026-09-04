@@ -1,5 +1,6 @@
 import baseWorker from "./worker-holiday-local-import.js";
 import { handleBoardAcknowledgement } from "./board-ack.js";
+import { handleSharedBoardAcknowledgement } from "./board-shared-ack.js";
 
 async function withBoardTheme(response) {
   if (!response) return response;
@@ -18,6 +19,8 @@ async function withBoardTheme(response) {
 
 export default {
   async fetch(request, env, ctx) {
+    const sharedBoardResponse = await handleSharedBoardAcknowledgement(request, env);
+    if (sharedBoardResponse) return withBoardTheme(sharedBoardResponse);
     const boardResponse = await handleBoardAcknowledgement(request, env);
     if (boardResponse) return withBoardTheme(boardResponse);
     return baseWorker.fetch(request, env, ctx);
