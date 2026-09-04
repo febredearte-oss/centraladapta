@@ -1,14 +1,12 @@
 const ROUTE_PREFIX = "/pautaoficialdiretoria+";
 
-// Links individuais da reunião de Diretoria de 04/09/2026.
-// A identificação é resolvida pelo próprio link; nada é solicitado na tela.
 const MEETINGS = {
   "04-09-2026": {
     recipients: {
-      "sA9JpNhezSzEcN67MPye4aX84V6X3isb": { id: "tonio", label: "Tonio" },
-      "6HkFUvBCSNGW8vjCI4UGkZzvu42mPjke": { id: "oton", label: "Oton" },
-      "538XrvEqH4cuZdJlx1PozkjOX9OgCxax": { id: "isabela", label: "Isabela" },
-      "KZqr-c8RtdKJlSprCk7DCvpFbkW0jqkW": { id: "gabriela", label: "Gabriela" },
+      tonio: { id: "tonio", label: "Tonio" },
+      oton: { id: "oton", label: "Oton" },
+      isabela: { id: "isabela", label: "Isabela" },
+      gabriela: { id: "gabriela", label: "Gabriela" },
     },
   },
 };
@@ -45,10 +43,12 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function routeDate(pathname) {
+function parseRoute(pathname) {
   if (!pathname.startsWith(ROUTE_PREFIX)) return null;
   const value = pathname.slice(ROUTE_PREFIX.length);
-  return /^\d{2}-\d{2}-\d{4}$/.test(value) ? value : null;
+  const match = value.match(/^(\d{2}-\d{2}-\d{4})\+([a-z0-9-]+)$/i);
+  if (!match) return null;
+  return { date: match[1], recipientSlug: match[2].toLowerCase() };
 }
 
 function formatDate(date) {
@@ -70,10 +70,10 @@ async function ensureSchema(env) {
   ]);
 }
 
-function resolveRecipient(date, token) {
+function resolveRecipient(date, recipientSlug) {
   const meeting = MEETINGS[date];
-  if (!meeting || !token) return null;
-  return meeting.recipients[token] || null;
+  if (!meeting || !recipientSlug) return null;
+  return meeting.recipients[recipientSlug] || null;
 }
 
 async function getRecord(env, date, recipient) {
@@ -109,9 +109,9 @@ function baseStyles() {
   `;
 }
 
-function activePage(date, token) {
+function activePage(date, recipient) {
   const safeDate = escapeHtml(formatDate(date));
-  const safeToken = JSON.stringify(token);
+  const safeName = escapeHtml(recipient.label);
   return html(`<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -122,7 +122,7 @@ function activePage(date, token) {
 <body><main>
   <p class="eyebrow">Adapta · Diretoria</p>
   <h1>Pauta Oficial da Diretoria</h1>
-  <p class="date">Reunião de ${safeDate}</p>
+  <p class="date">${safeName} · Reunião de ${safeDate}</p>
   <p class="statement">Confirmo que estou ciente dos direcionamentos gerais definidos na reunião de Diretoria da Adapta realizada nesta data.</p>
   <button id="ack" type="button">OK, CIENTE</button>
   <p class="fine">Este link é individual. A confirmação será registrada uma única vez.</p>
@@ -134,7 +134,7 @@ const msg=document.getElementById('msg');
 button.addEventListener('click',async()=>{
   button.disabled=true; msg.textContent='';
   try{
-    const response=await fetch(location.pathname+'?k='+encodeURIComponent(${safeToken}),{method:'POST',headers:{'content-type':'application/json'}});
+    const response=await fetch(location.pathname,{method:'POST',headers:{'content-type':'application/json'}});
     const data=await response.json().catch(()=>({}));
     if(!response.ok) throw new Error(data.error||'Não foi possível registrar.');
     location.reload();
@@ -143,8 +143,9 @@ button.addEventListener('click',async()=>{
 </script></body></html>`);
 }
 
-function consumedPage(date, acknowledgedAt) {
+function consumedPage(date, recipient, acknowledgedAt) {
   const safeDate = escapeHtml(formatDate(date));
+  const safeName = escapeHtml(recipient.label);
   let time = "";
   if (acknowledgedAt) {
     try {
@@ -162,7 +163,7 @@ function consumedPage(date, acknowledgedAt) {
   <div class="ok">✓</div>
   <p class="eyebrow">Adapta · Diretoria</p>
   <h1>Ciência registrada.</h1>
-  <p class="date">Pauta Oficial da Diretoria · ${safeDate}</p>
+  <p class="date">${safeName} · Pauta Oficial da Diretoria · ${safeDate}</p>
   <p class="done">Este link já cumpriu sua finalidade${time ? ` em ${escapeHtml(time)}` : ""} e não permite uma nova confirmação.</p>
 </main></body></html>`);
 }
@@ -173,19 +174,18 @@ function invalidPage() {
 
 export async function handleBoardAcknowledgement(request, env) {
   const url = new URL(request.url);
-  const date = routeDate(url.pathname);
-  if (!date) return null;
+  const route = parseRoute(url.pathname);
+  if (!route) return null;
 
-  const token = url.searchParams.get("k") || "";
-  const recipient = resolveRecipient(date, token);
+  const recipient = resolveRecipient(route.date, route.recipientSlug);
   if (!recipient) return invalidPage();
 
-  const record = await getRecord(env, date, recipient);
+  const record = await getRecord(env, route.date, recipient);
   if (!record) return invalidPage();
 
   if (request.method === "GET" || request.method === "HEAD") {
-    if (record.acknowledged_at) return consumedPage(date, record.acknowledged_at);
-    return activePage(date, token);
+    if (record.acknowledged_at) return consumedPage(route.date, recipient, record.acknowledged_at);
+    return activePage(route.date, recipient);
   }
 
   if (request.method === "POST") {
@@ -197,10 +197,10 @@ export async function handleBoardAcknowledgement(request, env) {
       `UPDATE board_acknowledgements
           SET acknowledged_at = ?
         WHERE meeting_date = ? AND recipient_id = ? AND acknowledged_at IS NULL`
-    ).bind(now, date, recipient.id).run();
+    ).bind(now, route.date, recipient.id).run();
 
     if (!result.meta?.changes) {
-      const latest = await getRecord(env, date, recipient);
+      const latest = await getRecord(env, route.date, recipient);
       return json({ ok: true, alreadyAcknowledged: true, acknowledgedAt: latest?.acknowledged_at || null });
     }
     return json({ ok: true, acknowledgedAt: now });
