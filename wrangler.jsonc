@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "centraladapta",
-  "main": "src/worker-holiday-local-import.js",
+  "main": "src/worker-board-ack.js",
   "compatibility_date": "2026-08-14",
   "assets": {
     "directory": "./public",
