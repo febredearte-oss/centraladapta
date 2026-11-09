@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const file = "public/index.html";
 let html = readFileSync(file,"utf8");
-const marker = "holiday-central-state-v4";
+const marker = "holiday-central-state-v5";
 if(html.includes(marker)) process.exit(0);
 
 const persistStart = html.indexOf("    function persistHolidayRecord(record){");
@@ -74,7 +74,8 @@ html = html.slice(0,signatureStart) + signatureReplacement + html.slice(signatur
 // de feriados quando a tela é aberta, evitando que valores-padrão visuais substituam
 // decisões já persistidas.
 html = html.replace(/<script id="holiday-d1-persistence-v2">[\s\S]*?<\/script>\s*/g,"");
-html = html.replace(/<script id="holiday-central-state-v3">[\s\S]*?<\/script>\s*/g,"");
+html = html.replace(/<script id="holiday-central-state-v3">[\\s\\S]*?<\\/script>\\s*/g,"");
+html = html.replace(/<script id="holiday-central-state-v4">[\\s\\S]*?<\\/script>\\s*/g,"");
 
 const runtime = `<script id="${marker}">
 (function(){
@@ -84,9 +85,16 @@ const runtime = `<script id="${marker}">
   function clone(value){return value==null?value:JSON.parse(JSON.stringify(value))}
 
   function refreshHolidayUi(){
-    try{if(typeof syncHolidayRecordsToCentral==="function")syncHolidayRecordsToCentral()}catch{}
-    try{if(typeof refreshWithoutCalendarRebuild==="function")refreshWithoutCalendarRebuild();else if(typeof renderAll==="function")renderAll()}catch{}
-    try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch{}
+    // holidayRecords é a única fonte de decisão. Todo o restante é derivado daqui.
+    try{if(typeof syncHolidayRecordsToCentral==="function")syncHolidayRecordsToCentral()}catch(error){console.warn("Falha ao derivar rede de feriados.",error)}
+    try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch(error){console.warn("Falha ao hidratar módulo nativo de feriados.",error)}
+    try{if(typeof refreshWithoutCalendarRebuild==="function")refreshWithoutCalendarRebuild();else if(typeof renderAll==="function")renderAll()}catch(error){console.warn("Falha ao redesenhar consumidores de feriados.",error)}
+    // O refresh acima deliberadamente não reconstrói o FullCalendar. Aqui precisamos
+    // fazê-lo porque as entradas feriado-* podem ter mudado após a hidratação.
+    try{if(typeof renderCalendar==="function")renderCalendar()}catch(error){console.warn("Falha ao reidratar calendário a partir dos feriados.",error)}
+    try{if(typeof renderHolidayOverview==="function")renderHolidayOverview()}catch{}
+    try{window.__adaptaRefreshCalendarToday?.()}catch{}
+    requestAnimationFrame(()=>{try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch{}});
   }
 
   async function hydrateHolidayUi(){
@@ -96,13 +104,16 @@ const runtime = `<script id="${marker}">
       const response=await fetch(ENDPOINT,{credentials:"same-origin",cache:"no-store"});
       if(!response.ok)throw new Error("holiday_records_http_"+response.status);
       const result=await response.json();
-      if(Array.isArray(result.holidayRecords))state.holidayRecords=clone(result.holidayRecords);
-      if(Array.isArray(result.holidayCommunicationTasks))state.holidayCommunicationTasks=clone(result.holidayCommunicationTasks);
-      if(Array.isArray(result.holidayContents))state.holidayContents=clone(result.holidayContents);
+      if(!Array.isArray(result.holidayRecords))throw new Error("holiday_records_invalid_payload");
+      state.holidayRecords=clone(result.holidayRecords);
+      // Não confiamos nos derivados persistidos (tasks/contents/calendar/items):
+      // eles são regenerados por syncHolidayRecordsToCentral a partir das decisões.
       refreshHolidayUi();
-      window.dispatchEvent(new CustomEvent("adapta:holiday-ui-hydrated",{detail:{revision:result.revision||0}}));
+      document.documentElement.dataset.holidayHydration="ready";
+      window.dispatchEvent(new CustomEvent("adapta:holiday-ui-hydrated",{detail:{revision:result.revision||0,records:result.holidayRecords.length}}));
     }catch(error){
-      console.warn("Não foi possível reidratar a interface de feriados.",error);
+      document.documentElement.dataset.holidayHydration="error";
+      console.warn("Não foi possível reidratar a rede de feriados.",error);
     }finally{
       hydrating=false;
     }
@@ -123,4 +134,4 @@ const runtime = `<script id="${marker}">
 if(!html.includes("</body>")) throw new Error("public/index.html sem </body>");
 html = html.replace("</body>",runtime+"\n</body>");
 writeFileSync(file,html,"utf8");
-console.log("Holiday module uses D1 as source of truth and explicitly rehydrates its UI from persisted records.");
+console.log("Holiday network hydrates deterministically from D1 holidayRecords into module, tasks, content and calendar.");
