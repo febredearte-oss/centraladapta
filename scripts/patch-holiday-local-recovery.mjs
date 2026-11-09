@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const file = "public/index.html";
 let html = readFileSync(file,"utf8");
-const marker = "holiday-central-state-v3";
+const marker = "holiday-central-state-v4";
 if(html.includes(marker)) process.exit(0);
 
 const persistStart = html.indexOf("    function persistHolidayRecord(record){");
@@ -70,11 +70,57 @@ const signatureReplacement = `      // Autoria declarada: rastreabilidade operac
 `;
 html = html.slice(0,signatureStart) + signatureReplacement + html.slice(signatureEnd);
 
-// Remove a hidratação exclusiva de feriados: o estado inteiro passa a ser carregado pelo gateway central.
+// O D1 segue como fonte única. Este runtime apenas reidrata a interface do módulo
+// de feriados quando a tela é aberta, evitando que valores-padrão visuais substituam
+// decisões já persistidas.
 html = html.replace(/<script id="holiday-d1-persistence-v2">[\s\S]*?<\/script>\s*/g,"");
-const runtime = `<script id="${marker}">window.addEventListener("adapta:central-state",()=>{try{refreshWithoutCalendarRebuild()}catch{};try{holidayDataHandler?.onDataChanged(JSON.parse(JSON.stringify(state.holidayRecords||[])))}catch{}});</script>`;
+html = html.replace(/<script id="holiday-central-state-v3">[\s\S]*?<\/script>\s*/g,"");
+
+const runtime = `<script id="${marker}">
+(function(){
+  const ENDPOINT="/api/holiday-records";
+  let hydrating=false;
+
+  function clone(value){return value==null?value:JSON.parse(JSON.stringify(value))}
+
+  function refreshHolidayUi(){
+    try{if(typeof syncHolidayRecordsToCentral==="function")syncHolidayRecordsToCentral()}catch{}
+    try{if(typeof refreshWithoutCalendarRebuild==="function")refreshWithoutCalendarRebuild();else if(typeof renderAll==="function")renderAll()}catch{}
+    try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch{}
+  }
+
+  async function hydrateHolidayUi(){
+    if(hydrating)return;
+    hydrating=true;
+    try{
+      const response=await fetch(ENDPOINT,{credentials:"same-origin",cache:"no-store"});
+      if(!response.ok)throw new Error("holiday_records_http_"+response.status);
+      const result=await response.json();
+      if(Array.isArray(result.holidayRecords))state.holidayRecords=clone(result.holidayRecords);
+      if(Array.isArray(result.holidayCommunicationTasks))state.holidayCommunicationTasks=clone(result.holidayCommunicationTasks);
+      if(Array.isArray(result.holidayContents))state.holidayContents=clone(result.holidayContents);
+      refreshHolidayUi();
+      window.dispatchEvent(new CustomEvent("adapta:holiday-ui-hydrated",{detail:{revision:result.revision||0}}));
+    }catch(error){
+      console.warn("Não foi possível reidratar a interface de feriados.",error);
+    }finally{
+      hydrating=false;
+    }
+  }
+
+  window.addEventListener("adapta:central-state",()=>{refreshHolidayUi();setTimeout(hydrateHolidayUi,30)});
+  window.addEventListener("adapta:central-ready",()=>setTimeout(hydrateHolidayUi,30));
+  document.addEventListener("click",event=>{
+    if(event.target?.closest?.('[data-page="holidays"]'))setTimeout(hydrateHolidayUi,40);
+  });
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden && document.getElementById("page-holidays")?.classList?.contains("active"))setTimeout(hydrateHolidayUi,30);
+  });
+  window.__adaptaHydrateHolidayUi=hydrateHolidayUi;
+})();
+</script>`;
 
 if(!html.includes("</body>")) throw new Error("public/index.html sem </body>");
 html = html.replace("</body>",runtime+"\n</body>");
 writeFileSync(file,html,"utf8");
-console.log("Holiday module routed through the unified Central state gateway.");
+console.log("Holiday module uses D1 as source of truth and explicitly rehydrates its UI from persisted records.");
