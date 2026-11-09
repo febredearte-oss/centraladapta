@@ -85,8 +85,8 @@ if(html.includes(calendarLookup)) html = html.replace(calendarLookup,calendarRep
 // de feriados quando a tela é aberta, evitando que valores-padrão visuais substituam
 // decisões já persistidas.
 html = html.replace(/<script id="holiday-d1-persistence-v2">[\s\S]*?<\/script>\s*/g,"");
-html = html.replace(/<script id="holiday-central-state-v3">[\\s\\S]*?<\\/script>\\s*/g,"");
-html = html.replace(/<script id="holiday-central-state-v4">[\\s\\S]*?<\\/script>\\s*/g,"");
+html = html.replace(/<script id="holiday-central-state-v3">[\s\S]*?<\/script>\s*/g,"");
+html = html.replace(/<script id="holiday-central-state-v4">[\s\S]*?<\/script>\s*/g,"");
 
 const runtime = `<script id="${marker}">
 (function(){
