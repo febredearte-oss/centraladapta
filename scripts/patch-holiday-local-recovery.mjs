@@ -70,6 +70,17 @@ const signatureReplacement = `      // Autoria declarada: rastreabilidade operac
 `;
 html = html.slice(0,signatureStart) + signatureReplacement + html.slice(signatureEnd);
 
+// Reconstrói também uma entrada de calendário ausente; antes o sync apenas atualizava
+// feriado-* já existente, podendo deixar tabela e calendário divergentes.
+const calendarLookup = "    const entry=state.calendarEntries.find(item=>item.id===`feriado-${holiday.date}`);";
+const calendarReplacement = "    let entry=state.calendarEntries.find(item=>item.id===`feriado-${holiday.date}`);\\n" +
+  "    if(!entry){\\n" +
+  "      entry={id:`feriado-${holiday.date}`,title:`Informativo — ${holiday.name}`,date:holiday.date,time:\\\"\\\",holiday:true,origin:\\\"holiday\\\",behavior:\\\"main\\\",status:\\\"provisório\\\",posted:false,lineId:\\\"\\\"};\\n" +
+  "      if(!Array.isArray(state.calendarEntries))state.calendarEntries=[];\\n" +
+  "      state.calendarEntries.push(entry);\\n" +
+  "    }";
+if(html.includes(calendarLookup)) html = html.replace(calendarLookup,calendarReplacement);
+
 // O D1 segue como fonte única. Este runtime apenas reidrata a interface do módulo
 // de feriados quando a tela é aberta, evitando que valores-padrão visuais substituam
 // decisões já persistidas.
