@@ -100,9 +100,15 @@ const runtime = `<script id="${marker}">
     try{if(typeof syncHolidayRecordsToCentral==="function")syncHolidayRecordsToCentral()}catch(error){console.warn("Falha ao derivar rede de feriados.",error)}
     try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch(error){console.warn("Falha ao hidratar módulo nativo de feriados.",error)}
     try{if(typeof refreshWithoutCalendarRebuild==="function")refreshWithoutCalendarRebuild();else if(typeof renderAll==="function")renderAll()}catch(error){console.warn("Falha ao redesenhar consumidores de feriados.",error)}
-    // O refresh acima deliberadamente não reconstrói o FullCalendar. Aqui precisamos
-    // fazê-lo porque as entradas feriado-* podem ter mudado após a hidratação.
-    try{if(typeof renderCalendar==="function")renderCalendar()}catch(error){console.warn("Falha ao reidratar calendário a partir dos feriados.",error)}
+    // O FullCalendar não deve ser criado enquanto sua página está oculta:
+    // isso pode inicializá-lo com dimensões zero e deixar a navegação aparentemente travada.
+    const calendarPage=document.getElementById("page-calendar");
+    if(calendarPage?.classList?.contains("active")){
+      requestAnimationFrame(()=>{
+        try{if(typeof renderCalendar==="function")renderCalendar()}catch(error){console.warn("Falha ao reidratar calendário visível a partir dos feriados.",error)}
+        try{if(typeof fullCalendarInstance?.updateSize==="function")fullCalendarInstance.updateSize()}catch{}
+      });
+    }
     try{if(typeof renderHolidayOverview==="function")renderHolidayOverview()}catch{}
     try{window.__adaptaRefreshCalendarToday?.()}catch{}
     requestAnimationFrame(()=>{try{holidayDataHandler?.onDataChanged?.(clone(state?.holidayRecords||[]))}catch{}});
@@ -134,6 +140,17 @@ const runtime = `<script id="${marker}">
   window.addEventListener("adapta:central-ready",()=>setTimeout(hydrateHolidayUi,30));
   document.addEventListener("click",event=>{
     if(event.target?.closest?.('[data-page="holidays"]'))setTimeout(hydrateHolidayUi,40);
+    if(event.target?.closest?.('[data-page="calendar"]')){
+      setTimeout(()=>{
+        const calendarPage=document.getElementById("page-calendar");
+        if(!calendarPage?.classList?.contains("active"))return;
+        try{if(typeof renderCalendar==="function")renderCalendar()}catch(error){console.warn("Falha ao abrir calendário.",error)}
+        requestAnimationFrame(()=>{
+          try{if(typeof fullCalendarInstance?.updateSize==="function")fullCalendarInstance.updateSize()}catch{}
+          try{if(typeof fullCalendarInstance?.rerenderEvents==="function")fullCalendarInstance.rerenderEvents()}catch{}
+        });
+      },60);
+    }
   });
   document.addEventListener("visibilitychange",()=>{
     if(!document.hidden && document.getElementById("page-holidays")?.classList?.contains("active"))setTimeout(hydrateHolidayUi,30);
