@@ -1,0 +1,43 @@
+name: TEMP Inspect Central Content Schema
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/temp-content-import.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright library
+        run: npm install --no-save playwright@1.55.0
+      - name: Inspect live content schema
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          import { execSync } from 'node:child_process';
+          const executablePath=execSync("command -v google-chrome || command -v google-chrome-stable || command -v chromium",{encoding:'utf8'}).trim();
+          const browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox']});
+          const page=await browser.newPage();
+          await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
+          await page.waitForFunction(()=>document.documentElement.dataset.centralState==='ready',{timeout:30000});
+          const data=await page.evaluate(async()=>{
+            const remote=await (await fetch('/api/shared-state',{cache:'no-store'})).json();
+            const s=remote.state||{};
+            const ids=Object.keys(s.items||{});
+            return {
+              revision:remote.revision,
+              lines:s.lines,
+              itemSamples:ids.slice(0,8).map(id=>({id,item:s.items[id]})),
+              calendarSamples:(s.calendarEntries||[]).slice(0,8),
+              settings:s.settings
+            };
+          });
+          console.log(JSON.stringify(data,null,2));
+          await browser.close();
+          EOF
