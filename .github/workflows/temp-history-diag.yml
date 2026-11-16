@@ -1,0 +1,20 @@
+name: TEMP State History Diagnostic
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Cloudflare deploy
+        run: sleep 25
+      - name: Read D1 history summaries
+        run: |
+          set -euo pipefail
+          curl -fsS https://centraladapta.febredearte.workers.dev/api/state-history-diagnostic | python -m json.tool
