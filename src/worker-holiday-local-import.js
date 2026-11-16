@@ -7,7 +7,6 @@ const LOGS_PATH = "/api/holiday-logs";
 const CLOCK_PATH = "/api/central-clock";
 const SHARED_STATE_PATH = "/api/shared-state";
 const ACTIVITY_LOGS_PATH = "/api/activity-logs";
-const HISTORY_DIAG_PATH = "/api/state-history-diagnostic";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -165,34 +164,6 @@ async function patchSharedState(request,env){
   return json({error:"revision_conflict"},409);
 }
 
-function summarizeState(state){
-  const obj=state&&typeof state==="object"?state:{};
-  const countObject=value=>value&&typeof value==="object"&&!Array.isArray(value)?Object.keys(value).length:0;
-  const countArray=value=>Array.isArray(value)?value.length:0;
-  return {
-    bytes:JSON.stringify(obj).length,
-    items:countObject(obj.items),
-    calendarEntries:countArray(obj.calendarEntries),
-    lines:countArray(obj.lines),
-    holidayRecords:countArray(obj.holidayRecords),
-    holidayCommunicationTasks:countArray(obj.holidayCommunicationTasks),
-    holidayContents:countArray(obj.holidayContents),
-    activity:countArray(obj.activity),
-    settingsKeys:countObject(obj.settings)
-  };
-}
-
-async function stateHistoryDiagnostic(env){
-  const current=await readCurrentState(env);
-  if(current.error)return current.error;
-  const rows=await env.DB.prepare("SELECT id,revision,state_json,changed_at,changed_by FROM state_history ORDER BY id DESC LIMIT 50").all();
-  const history=(rows.results||[]).map(row=>{
-    let parsed={}; try{parsed=JSON.parse(row.state_json||"{}")}catch{}
-    return {id:row.id,revision:Number(row.revision||0),changedAt:row.changed_at,changedBy:row.changed_by,summary:summarizeState(parsed)};
-  });
-  return json({current:{revision:Number(current.row.revision||0),updatedAt:current.row.updated_at,updatedBy:current.row.updated_by,summary:summarizeState(current.state)},history});
-}
-
 async function activityLogs(env){
   await ensureAuditSchema(env);
   const rows=await env.DB.prepare("SELECT id,revision,area,field_path,before_value,after_value,declared_by,changed_at FROM activity_audit_log ORDER BY id DESC LIMIT 500").all();
@@ -312,7 +283,6 @@ export default {
     if(url.pathname === SHARED_STATE_PATH && request.method === "GET") return getSharedState(env);
     if(url.pathname === SHARED_STATE_PATH && request.method === "PATCH") return patchSharedState(request,env);
     if(url.pathname === ACTIVITY_LOGS_PATH && request.method === "GET") return activityLogs(env);
-    if(url.pathname === HISTORY_DIAG_PATH && request.method === "GET") return stateHistoryDiagnostic(env);
     if(url.pathname === RECORDS_PATH && request.method === "GET") return holidayRecords(env);
     if(url.pathname === RECORD_PATH && request.method === "PUT") return saveHolidayRecord(request,env);
     if(url.pathname === LOGS_PATH && request.method === "GET") return holidayLogs(env);
