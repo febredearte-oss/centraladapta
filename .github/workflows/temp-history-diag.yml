@@ -1,4 +1,4 @@
-name: TEMP Central Live Recovery Check
+name: TEMP Central Live Browser Recovery
 
 on:
   push:
@@ -13,40 +13,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wait for Cloudflare Git deployment
-        run: sleep 35
-      - name: Check live inline JavaScript
+        run: sleep 20
+      - name: Install Playwright library
+        run: npm install --no-save playwright@1.55.0
+      - name: Verify live Central in system Chrome
         run: |
-          set -euo pipefail
-          curl -fsS https://centraladapta.febredearte.workers.dev/ -o /tmp/central.html
-          python - <<'PY'
-          import re, pathlib, subprocess, sys
-          html=pathlib.Path('/tmp/central.html').read_text()
-          scripts=re.findall(r'<script([^>]*)>([\s\S]*?)</script>',html,re.I)
-          bad=[]
-          for i,(attrs,body) in enumerate(scripts):
-              if re.search(r'\bsrc\s*=',attrs,re.I): continue
-              sid=re.search(r'\bid=["\']([^"\']+)',attrs,re.I)
-              name=sid.group(1) if sid else f'inline-{i}'
-              pth=pathlib.Path(f'/tmp/script-{i}.js'); pth.write_text(body)
-              p=subprocess.run(['node','--check',str(pth)],capture_output=True,text=True)
-              if p.returncode: bad.append((i,name,p.stderr))
-          print('INLINE_SCRIPTS',len(scripts)); print('BROKEN',len(bad))
-          for i,name,err in bad: print('\n###',i,name,'\n',err)
-          if bad: sys.exit(1)
-          PY
-      - name: Verify live D1 state
-        run: |
-          python - <<'PY'
-          import json, urllib.request, sys
-          data=json.load(urllib.request.urlopen('https://centraladapta.febredearte.workers.dev/api/shared-state'))
-          s=data.get('state') or {}
-          result={
-            'revision':data.get('revision'),
-            'items':len((s.get('items') or {}).keys()),
-            'calendarEntries':len(s.get('calendarEntries') or []),
-            'lines':len(s.get('lines') or []),
-            'holidayRecords':len(s.get('holidayRecords') or [])
-          }
-          print(json.dumps(result,indent=2))
-          if result['items']!=47 or result['calendarEntries']!=64 or result['lines']!=6: sys.exit(1)
-          PY
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          import { execSync } from 'node:child_process';
+          const executablePath=execSync("command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser",{encoding:'utf8'}).trim();
+          const browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox']});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[]; const consoleErrors=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+          await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
+          await page.waitForFunction(()=>document.documentElement.dataset.centralState==='ready',{timeout:30000});
+          await page.waitForTimeout(2000);
+          const result=await page.evaluate(async()=>{
+            const remote=await (await fetch('/api/shared-state',{cache:'no-store'})).json();
+            const local=JSON.parse(localStorage.getItem('central_adapta_v40')||'{}');
+            return {
+              revision:remote.revision,
+              remoteItems:remote.state?.items?Object.keys(remote.state.items).length:0,
+              localItems:local.items&&typeof local.items==='object'?Object.keys(local.items).length:0,
+              remoteEntries:Array.isArray(remote.state?.calendarEntries)?remote.state.calendarEntries.length:0,
+              localEntries:Array.isArray(local.calendarEntries)?local.calendarEntries.length:0,
+              remoteLines:Array.isArray(remote.state?.lines)?remote.state.lines.length:0,
+              localLines:Array.isArray(local.lines)?local.lines.length:0,
+              holidayRecords:Array.isArray(local.holidayRecords)?local.holidayRecords.length:0,
+              stateReady:document.documentElement.dataset.centralState,
+              mainStateDefined:typeof state==='object'&&!!state,
+              calendarDefined:typeof fullCalendarInstance!=='undefined',
+              overviewVisible:!!document.querySelector('#page-overview.page.active'),
+              slotRuntime:!!document.getElementById('adapta-dynamic-slots-runtime-v2')
+            };
+          });
+          result.pageErrors=errors;
+          result.consoleErrors=consoleErrors;
+          result.ok=result.stateReady==='ready'&&result.remoteItems===47&&result.localItems===47&&result.remoteEntries===64&&result.localEntries===64&&result.remoteLines===6&&result.localLines===6&&result.mainStateDefined&&result.slotRuntime&&errors.length===0;
+          console.log(JSON.stringify(result,null,2));
+          await browser.close();
+          if(!result.ok) process.exit(1);
+          EOF
