@@ -1,4 +1,4 @@
-name: TEMP State History Diagnostic
+name: TEMP Central Recovery Verify
 
 on:
   push:
@@ -9,12 +9,59 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Wait for Cloudflare deploy
         run: sleep 25
-      - name: Read D1 history summaries
+      - name: Verify D1 summaries
         run: |
           set -euo pipefail
           curl -fsS https://centraladapta.febredearte.workers.dev/api/state-history-diagnostic | python -m json.tool
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify live UI hydration
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];
+          const consoleErrors=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+          await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
+          await page.waitForFunction(()=>document.documentElement.dataset.centralState==='ready',{timeout:30000});
+          await page.waitForTimeout(2500);
+          const result=await page.evaluate(async()=>{
+            const remote=await (await fetch('/api/shared-state',{cache:'no-store'})).json();
+            const local=JSON.parse(localStorage.getItem('central_adapta_v40')||'{}');
+            const pageText=(document.body.innerText||'').slice(0,5000);
+            const itemCount=local.items&&typeof local.items==='object'?Object.keys(local.items).length:0;
+            const entryCount=Array.isArray(local.calendarEntries)?local.calendarEntries.length:0;
+            const lineCount=Array.isArray(local.lines)?local.lines.length:0;
+            const visiblePages=[...document.querySelectorAll('.page')].filter(el=>getComputedStyle(el).display!=='none').map(el=>el.id);
+            return {
+              revision:remote.revision,
+              remoteItems:remote.state?.items?Object.keys(remote.state.items).length:0,
+              localItems:itemCount,
+              remoteEntries:Array.isArray(remote.state?.calendarEntries)?remote.state.calendarEntries.length:0,
+              localEntries:entryCount,
+              remoteLines:Array.isArray(remote.state?.lines)?remote.state.lines.length:0,
+              localLines:lineCount,
+              visiblePages,
+              hasOverview:/Visão geral/i.test(pageText),
+              slotRuntime:!!document.getElementById('adapta-dynamic-slots-runtime-v2'),
+              slotPlanTotal:window.__adaptaSlotPlan?.total??null,
+              stateReady:document.documentElement.dataset.centralState
+            };
+          });
+          result.pageErrors=errors;
+          result.consoleErrors=consoleErrors;
+          result.ok=result.stateReady==='ready'&&result.remoteItems===47&&result.localItems===47&&result.remoteEntries===64&&result.localEntries===64&&result.remoteLines===6&&result.localLines===6&&result.hasOverview&&result.slotRuntime&&errors.length===0;
+          console.log(JSON.stringify(result,null,2));
+          await browser.close();
+          if(!result.ok)process.exit(1);
+          EOF
