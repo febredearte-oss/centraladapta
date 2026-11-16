@@ -1,4 +1,4 @@
-name: TEMP Central Build Script Check
+name: TEMP Central Live Recovery Check
 
 on:
   push:
@@ -12,18 +12,15 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-      - run: npm install --no-audit --no-fund
-      - name: Build exactly as Cloudflare
-        run: npx wrangler deploy --dry-run
-      - name: Check every generated inline script
+      - name: Wait for Cloudflare Git deployment
+        run: sleep 35
+      - name: Check live inline JavaScript
         run: |
+          set -euo pipefail
+          curl -fsS https://centraladapta.febredearte.workers.dev/ -o /tmp/central.html
           python - <<'PY'
           import re, pathlib, subprocess, sys
-          html=pathlib.Path('public/index.html').read_text()
+          html=pathlib.Path('/tmp/central.html').read_text()
           scripts=re.findall(r'<script([^>]*)>([\s\S]*?)</script>',html,re.I)
           bad=[]
           for i,(attrs,body) in enumerate(scripts):
@@ -33,9 +30,23 @@ jobs:
               pth=pathlib.Path(f'/tmp/script-{i}.js'); pth.write_text(body)
               p=subprocess.run(['node','--check',str(pth)],capture_output=True,text=True)
               if p.returncode: bad.append((i,name,p.stderr))
-          print('INLINE_SCRIPTS',len(scripts))
-          print('BROKEN',len(bad))
-          for i,name,err in bad:
-              print('\n###',i,name); print(err)
+          print('INLINE_SCRIPTS',len(scripts)); print('BROKEN',len(bad))
+          for i,name,err in bad: print('\n###',i,name,'\n',err)
           if bad: sys.exit(1)
+          PY
+      - name: Verify live D1 state
+        run: |
+          python - <<'PY'
+          import json, urllib.request, sys
+          data=json.load(urllib.request.urlopen('https://centraladapta.febredearte.workers.dev/api/shared-state'))
+          s=data.get('state') or {}
+          result={
+            'revision':data.get('revision'),
+            'items':len((s.get('items') or {}).keys()),
+            'calendarEntries':len(s.get('calendarEntries') or []),
+            'lines':len(s.get('lines') or []),
+            'holidayRecords':len(s.get('holidayRecords') or [])
+          }
+          print(json.dumps(result,indent=2))
+          if result['items']!=47 or result['calendarEntries']!=64 or result['lines']!=6: sys.exit(1)
           PY
