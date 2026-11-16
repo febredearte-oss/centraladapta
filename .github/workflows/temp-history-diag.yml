@@ -13,23 +13,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wait for Cloudflare deploy
-        run: sleep 25
+        run: sleep 20
       - name: Verify D1 summaries
         run: |
           set -euo pipefail
           curl -fsS https://centraladapta.febredearte.workers.dev/api/state-history-diagnostic | python -m json.tool
-      - name: Install browser
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-      - name: Verify live UI hydration
+      - name: Install Playwright library only
+        run: npm install --no-save playwright@1.55.0
+      - name: Verify live UI hydration with system Chrome
         run: |
           node --input-type=module <<'EOF'
           import { chromium } from 'playwright';
-          const browser=await chromium.launch({headless:true});
+          import { execSync } from 'node:child_process';
+          const executablePath=execSync("command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser",{encoding:'utf8'}).trim();
+          console.log('chrome='+executablePath);
+          const browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox']});
           const page=await browser.newPage({viewport:{width:1440,height:1000}});
-          const errors=[];
-          const consoleErrors=[];
+          const errors=[]; const consoleErrors=[];
           page.on('pageerror',e=>errors.push(e.message));
           page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
           await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
@@ -38,21 +38,17 @@ jobs:
           const result=await page.evaluate(async()=>{
             const remote=await (await fetch('/api/shared-state',{cache:'no-store'})).json();
             const local=JSON.parse(localStorage.getItem('central_adapta_v40')||'{}');
-            const pageText=(document.body.innerText||'').slice(0,5000);
-            const itemCount=local.items&&typeof local.items==='object'?Object.keys(local.items).length:0;
-            const entryCount=Array.isArray(local.calendarEntries)?local.calendarEntries.length:0;
-            const lineCount=Array.isArray(local.lines)?local.lines.length:0;
-            const visiblePages=[...document.querySelectorAll('.page')].filter(el=>getComputedStyle(el).display!=='none').map(el=>el.id);
+            const bodyText=document.body.innerText||'';
             return {
               revision:remote.revision,
               remoteItems:remote.state?.items?Object.keys(remote.state.items).length:0,
-              localItems:itemCount,
+              localItems:local.items&&typeof local.items==='object'?Object.keys(local.items).length:0,
               remoteEntries:Array.isArray(remote.state?.calendarEntries)?remote.state.calendarEntries.length:0,
-              localEntries:entryCount,
+              localEntries:Array.isArray(local.calendarEntries)?local.calendarEntries.length:0,
               remoteLines:Array.isArray(remote.state?.lines)?remote.state.lines.length:0,
-              localLines:lineCount,
-              visiblePages,
-              hasOverview:/Visão geral/i.test(pageText),
+              localLines:Array.isArray(local.lines)?local.lines.length:0,
+              hasOverview:/Visão geral/i.test(bodyText),
+              hasContentText:/Conteúdos/i.test(bodyText),
               slotRuntime:!!document.getElementById('adapta-dynamic-slots-runtime-v2'),
               slotPlanTotal:window.__adaptaSlotPlan?.total??null,
               stateReady:document.documentElement.dataset.centralState
