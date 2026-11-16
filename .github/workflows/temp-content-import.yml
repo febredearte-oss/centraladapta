@@ -1,11 +1,11 @@
-name: TEMP Inspect Central Content Schema
+name: TEMP Inspect Central Content Model
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - .github/workflows/temp-content-import.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Install Playwright library
         run: npm install --no-save playwright@1.55.0
-      - name: Inspect live content schema
+      - name: Inspect model
         run: |
           node --input-type=module <<'EOF'
           import { chromium } from 'playwright';
@@ -26,18 +26,17 @@ jobs:
           const page=await browser.newPage();
           await page.goto('https://centraladapta.febredearte.workers.dev',{waitUntil:'networkidle',timeout:60000});
           await page.waitForFunction(()=>document.documentElement.dataset.centralState==='ready',{timeout:30000});
-          const data=await page.evaluate(async()=>{
+          const out=await page.evaluate(async()=>{
             const remote=await (await fetch('/api/shared-state',{cache:'no-store'})).json();
             const s=remote.state||{};
-            const ids=Object.keys(s.items||{});
-            return {
-              revision:remote.revision,
-              lines:s.lines,
-              itemSamples:ids.slice(0,8).map(id=>({id,item:s.items[id]})),
-              calendarSamples:(s.calendarEntries||[]).slice(0,8),
-              settings:s.settings
-            };
+            const summary={};
+            for(const [k,v] of Object.entries(s)){
+              if(Array.isArray(v)) summary[k]={type:'array',length:v.length,sample:v.slice(0,3)};
+              else if(v&&typeof v==='object') summary[k]={type:'object',keys:Object.keys(v).length,sample:Object.entries(v).slice(0,3)};
+              else summary[k]={type:typeof v,value:v};
+            }
+            return {revision:remote.revision,summary};
           });
-          console.log(JSON.stringify(data,null,2));
+          console.log(JSON.stringify(out,null,2));
           await browser.close();
           EOF
